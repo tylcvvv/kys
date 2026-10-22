@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MetaMask Detector</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
+    background: radial-gradient(1000px 600px at 50% -10%, #1d2747 0%, #0b0d12 65%) no-repeat, #0b0d12;
+    color: #e8ecf3;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
+    padding: 36px 28px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 24px 60px -30px rgba(0,0,0,0.9);
+    transition: border-color .3s ease, background .3s ease;
+  }
+  .card.found {
+    border-color: rgba(52,211,153,0.45);
+    background: linear-gradient(180deg, rgba(52,211,153,0.10), rgba(255,255,255,0.03));
+  }
+  .card.none {
+    border-color: rgba(248,113,113,0.35);
+    background: linear-gradient(180deg, rgba(248,113,113,0.08), rgba(255,255,255,0.03));
+  }
+
+  .icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #f6851b, #e2761b);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 12px 30px -12px rgba(246,133,27,0.9);
+    filter: grayscale(0.7) brightness(0.7);
+    transition: filter .3s ease;
+  }
+  .card.found .icon { filter: none; }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+
+  p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #8b93a7;
+  }
+  .card.found p { color: #a7f3d0; }
+  .card.none  p { color: #fca5a5; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 22px;
+    padding: 9px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .badge.found { background: rgba(52,211,153,0.16); color: #34d399; }
+  .badge.none  { background: rgba(248,113,113,0.12); color: #f87171; }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .a {
+    display: inline-block;
+    margin-top: 20px;
+    font-size: 13px;
+    color: #a5b4fc;
+    text-decoration: none;
+    border-bottom: 1px dashed rgba(165,180,252,0.5);
+  }
+  .a:hover { color: #c7d2fe; }
+</style>
+</head>
+<body>
+
+  <div class="card" id="card">
+    <div class="icon">MM</div>
+    <h1 id="title">Checking…</h1>
+    <p id="desc">Looking for MetaMask in this browser.</p>
+    <div class="badge" id="badge"><span class="dot"></span><span id="badgeText">Scanning</span></div>
+  </div>
+
+<script>
+  (function () {
+    "use strict";
+
+    var card      = document.getElementById("card");
+    var title     = document.getElementById("title");
+    var desc      = document.getElementById("desc");
+    var badge     = document.getElementById("badge");
+    var badgeText = document.getElementById("badgeText");
+
+    function detect() {
+      var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
+
+      // Handle multi-provider (e.g. MetaMask + other wallet installed together)
+      var providers = [];
+      if (eth) {
+        if (Array.isArray(eth.providers) && eth.providers.length) {
+          providers = eth.providers;
+        } else {
+          providers = [eth];
+        }
+      }
+
+      var hasMetaMask = false;
+      for (var i = 0; i < providers.length; i++) {
+        if (providers[i] && providers[i].isMetaMask) {
+          hasMetaMask = true;
+          break;
+        }
+      }
+
+      render(hasMetaMask, eth);
+    }
+
+    function render(found, eth) {
+      if (found) {
+        card.className = "card found";
+        title.textContent = "MetaMask is installed 🦊";
+        desc.textContent  = "We detected the MetaMask wallet extension in your browser.";
+        badge.className   = "badge found";
+        badgeText.textContent = "Detected";
+      } else if (eth) {
+        // Some other wallet is present, but not MetaMask
+        card.className = "card none";
+        title.textContent = "MetaMask not found";
+        desc.textContent  = "Another wallet extension is active, but MetaMask is not installed.";
+        badge.className   = "badge none";
+        badgeText.textContent = "Not installed";
+      } else {
+        card.className = "card none";
+        title.textContent = "MetaMask not found";
+        desc.textContent  = "Install the MetaMask extension to get started.";
+        badge.className   = "badge none";
+        badgeText.textContent = "Not installed";
+      }
+    }
+
+    // Run on load + a few delayed checks (extensions sometimes inject late)
+    render(false, null);
+    setTimeout(detect, 0);
+    setTimeout(detect, 300);
+    setTimeout(detect, 1000);
+    window.addEventListener("load", detect);
+
+  })();
+</script>
+</body>
+</html>
