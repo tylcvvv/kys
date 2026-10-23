@@ -1,253 +1,332 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Website Dumper (JS + CSS + HTML)</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 1.5rem auto; padding: 0 1rem; }
-    input { width: 100%; padding: .6rem; font-size: 1rem; margin-bottom: .6rem; box-sizing: border-box; }
-    button { padding: .5rem .9rem; font-size: .95rem; cursor: pointer; margin-right: .4rem; margin-bottom: .4rem; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    .tabs { display: flex; gap: .3rem; margin: 1rem 0 .5rem; flex-wrap: wrap; }
-    .tabs button { background: #eee; border: 1px solid #ccc; border-radius: 4px; }
-    .tabs button.active { background: #2563eb; color: white; border-color: #2563eb; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    textarea { width: 100%; height: 420px; font-family: ui-monospace, monospace; font-size: .8rem; box-sizing: border-box; }
-    #log { background: #0f172a; color: #a3e635; font-family: monospace; font-size: .75rem;
-           padding: .7rem; height: 130px; overflow-y: auto; border-radius: 4px; white-space: pre-wrap; }
-    .bar { display: flex; gap: .5rem; align-items: center; margin-bottom: .4rem; }
-    .bar .info { color: #666; font-size: .85rem; flex: 1; }
-  </style>
+<meta charset="UTF-8">
+<title>Website Dumper v3</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; max-width: 1000px; margin: 1rem auto; padding: 0 1rem 2rem; background:#f9fafb; color:#111; }
+  .toolbar { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
+  input[type=url] { flex:1; min-width:220px; padding:.55rem .7rem; font-size:1rem; border:1px solid #ccc; border-radius:6px; }
+  button { padding:.55rem .9rem; font-size:.92rem; cursor:pointer; border:1px solid #d1d5db; background:#fff; border-radius:6px; font-weight:500; }
+  button:hover:not(:disabled){ background:#f3f4f6; }
+  button:disabled{ opacity:.5; cursor:not-allowed; }
+  button.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+  button.primary:hover:not(:disabled){ background:#1d4ed8; }
+  .status-row { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:.5rem; }
+  .status { padding:.3rem .65rem; border-radius:4px; font-size:.78rem; font-family:monospace; background:#e5e7eb; color:#374151; }
+  .status.ok{ background:#dcfce7; color:#166534; } .status.err{ background:#fee2e2; color:#991b1b; } .status.busy{ background:#dbeafe; color:#1e40af; }
+  .log { background:#0a0a0a; color:#d4d4d4; font-family:ui-monospace,monospace; font-size:12px; line-height:1.45; padding:.6rem; height:280px; overflow-y:auto; border-radius:6px; margin:0 0 1rem; border:1px solid #1f2937; }
+  .log > div { white-space:pre-wrap; word-break:break-all; }
+  .log .ok{ color:#4ade80; } .log .err{ color:#f87171; } .log .warn{ color:#fbbf24; } .log .info{ color:#93c5fd; } .log .dim{ color:#9ca3af; } .log .ts{ color:#4b5563; margin-right:.5rem; }
+  .tabs { display:flex; gap:.25rem; margin-bottom:.4rem; flex-wrap:wrap; }
+  .tab { padding:.4rem .8rem; background:#e5e7eb; border:1px solid #d1d5db; border-bottom:none; border-radius:6px 6px 0 0; cursor:pointer; font-size:.85rem; }
+  .tab.active{ background:#fff; border-bottom-color:#fff; font-weight:600; }
+  .panel{ display:none; } .panel.active{ display:block; }
+  .panel-head{ display:flex; align-items:center; gap:.5rem; margin-bottom:.3rem; }
+  .panel-head .info{ font-size:.8rem; color:#6b7280; font-family:monospace; flex:1; }
+  textarea{ width:100%; height:420px; font-family:ui-monospace,monospace; font-size:11px; padding:.5rem; border:1px solid #d1d5db; border-radius:0 6px 6px 6px; resize:vertical; background:#fff; }
+</style>
 </head>
 <body>
-  <h2>Website Dumper — HTML + CSS + JS</h2>
-  <input id="urlInput" type="url" placeholder="https://example.com">
-  <button id="dumpBtn">🕵️ Dump Everything</button>
-  <button id="copyJsBtn" disabled>📋 Copy JS only</button>
-  <button id="downloadBtn" disabled>💾 Download all</button>
 
-  <div class="tabs">
-    <button data-tab="js" class="active">JavaScript</button>
-    <button data-tab="css">CSS</button>
-    <button data-tab="html">HTML</button>
-    <button data-tab="log">Log</button>
-  </div>
+<div class="toolbar">
+  <input id="urlInput" type="url" placeholder="https://example.com" autocomplete="off">
+  <button id="dumpBtn" class="primary">🕵️ Dump</button>
+  <button id="testBtn">🧪 Test Proxies</button>
+</div>
 
-  <div class="panel active" id="panel-js">
-    <div class="bar"><span class="info" id="jsInfo">—</span><button class="copy" data-target="js">📋 Copy</button></div>
-    <textarea id="jsOut" placeholder="JS will appear here..."></textarea>
-  </div>
-  <div class="panel" id="panel-css">
-    <div class="bar"><span class="info" id="cssInfo">—</span><button class="copy" data-target="css">📋 Copy</button></div>
-    <textarea id="cssOut"></textarea>
-  </div>
-  <div class="panel" id="panel-html">
-    <div class="bar"><span class="info" id="htmlInfo">—</span><button class="copy" data-target="html">📋 Copy</button></div>
-    <textarea id="htmlOut"></textarea>
-  </div>
-  <div class="panel" id="panel-log">
-    <div id="log"></div>
-  </div>
+<div class="status-row">
+  <span class="status" id="statusProxy">proxy: —</span>
+  <span class="status" id="statusPhase">phase: idle</span>
+  <span class="status" id="statusCount">requests: 0</span>
+</div>
+
+<div class="log" id="log"></div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="js">JavaScript</button>
+  <button class="tab" data-tab="css">CSS</button>
+  <button class="tab" data-tab="html">HTML</button>
+</div>
+<div class="panel active" id="panel-js">
+  <div class="panel-head"><span class="info" id="jsInfo">—</span><button class="copy" data-target="jsOut">📋 Copy JS</button></div>
+  <textarea id="jsOut" placeholder="JS here…"></textarea>
+</div>
+<div class="panel" id="panel-css">
+  <div class="panel-head"><span class="info" id="cssInfo">—</span><button class="copy" data-target="cssOut">📋 Copy CSS</button></div>
+  <textarea id="cssOut"></textarea>
+</div>
+<div class="panel" id="panel-html">
+  <div class="panel-head"><span class="info" id="htmlInfo">—</span><button class="copy" data-target="htmlOut">📋 Copy HTML</button></div>
+  <textarea id="htmlOut"></textarea>
+</div>
 
 <script>
-const PROXY = 'https://api.allorigins.win/raw?url=';
-const MAX_SCRIPTS = 100;
-const MAX_TOTAL_CHARS = 20_000_000;
-
+const PROXIES = [
+  { name:'allorigins', build:u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u) },
+  { name:'codetabs',   build:u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u) },
+  { name:'corsproxy',  build:u=>'https://corsproxy.io/?url='+encodeURIComponent(u) },
+  { name:'thingproxy', build:u=>'https://thingproxy.freeboard.io/fetch/'+u },
+];
+let preferredProxyIdx = 0, requestCount = 0;
 const $ = id => document.getElementById(id);
-const log = msg => { const el = $('log'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; };
 
-function fmtSize(n) {
-  if (n < 1024) return n + ' B';
-  if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
-  return (n/1048576).toFixed(2) + ' MB';
+const escapeHtml = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function log(msg, cls='dim') {
+  const el = $('log');
+  const line = document.createElement('div');
+  line.className = cls;
+  line.innerHTML = `<span class="ts">${new Date().toLocaleTimeString()}</span>${escapeHtml(msg)}`;
+  el.appendChild(line);
+  if (el.children.length > 800) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+  (cls==='err'?console.error:cls==='warn'?console.warn:console.log)('[dumper]', msg);
 }
+function setStatus(id, text, cls) { const e=$(id); e.textContent=text; e.className='status'+(cls?' '+cls:''); }
+function fmtSize(n){ return n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB'; }
 
-async function fetchViaProxy(url) {
-  const r = await fetch(PROXY + encodeURIComponent(url));
-  if (!r.ok) throw new Error('HTTP ' + r.status);
-  return r.text();
-}
-
-// simple concurrency pool
-async function pool(items, limit, worker) {
-  let i = 0;
-  const run = async () => {
-    while (i < items.length) {
-      const idx = i++;
-      await worker(items[idx], idx);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
-}
-
-// tab switching
-document.querySelectorAll('.tabs button').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    $('panel-' + btn.dataset.tab).classList.add('active');
-  };
-});
-
-// copy buttons (each click = fresh user activation ✅)
-document.querySelectorAll('.copy').forEach(btn => {
-  btn.onclick = async () => {
-    const ta = $({js:'jsOut', css:'cssOut', html:'htmlOut'}[btn.dataset.target]);
+async function fetchViaProxy(url, { timeout=20000, what='' } = {}) {
+  requestCount++; setStatus('statusCount','requests: '+requestCount);
+  const order = [];
+  for (let i=0;i<PROXIES.length;i++) order.push(PROXIES[(preferredProxyIdx+i)%PROXIES.length]);
+  const errors = [];
+  for (const proxy of order) {
+    log(`  → ${what||''} via ${proxy.name}`, 'dim');
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), timeout);
     try {
-      await navigator.clipboard.writeText(ta.value);
-      btn.textContent = '✅ Copied!';
-    } catch {
-      ta.select(); document.execCommand('copy'); btn.textContent = '✅ Copied (legacy)';
+      const res = await fetch(proxy.build(url), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      preferredProxyIdx = PROXIES.indexOf(proxy);
+      setStatus('statusProxy','proxy: '+proxy.name,'ok');
+      log(`  ✓ ${proxy.name} → ${fmtSize(text.length)}`, 'ok');
+      return text;
+    } catch (err) {
+      clearTimeout(timer);
+      const msg = err.name==='AbortError'?`timeout ${timeout/1000}s`:err.message||String(err);
+      log(`  ✗ ${proxy.name}: ${msg}`, 'err');
+      errors.push(proxy.name+': '+msg);
     }
-    setTimeout(() => btn.textContent = '📋 Copy', 1200);
-  };
+  }
+  setStatus('statusProxy','proxy: ALL FAILED','err');
+  throw new Error('All proxies failed → '+errors.join(' | '));
+}
+
+async function pool(items, limit, worker, onProgress) {
+  const total = items.length, results = new Array(total);
+  let nextIdx=0, completed=0;
+  async function run() {
+    while (true) {
+      const idx = nextIdx++;
+      if (idx >= total) return;
+      let r;
+      try { r = await worker(items[idx], idx); }
+      catch (e) { r = { error: e.message || String(e) }; }
+      results[idx] = r; completed++;
+      if (onProgress) { try { onProgress(completed,total,items[idx],r); } catch(e){ console.error(e); } }
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(limit,total)}, ()=>run()));
+  return results;
+}
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); $('panel-'+t.dataset.tab).classList.add('active');
+}));
+
+async function copyText(text, btn) {
+  const original = btn.textContent;
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else throw new Error('no clipboard API');
+    btn.textContent = '✅ Copied!';
+  } catch (e) {
+    try {
+      const tmp = document.createElement('textarea');
+      tmp.value = text; tmp.style.position='fixed'; tmp.style.left='-9999px';
+      document.body.appendChild(tmp); tmp.focus(); tmp.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(tmp);
+      if (!ok) throw new Error('execCommand returned false');
+      btn.textContent = '✅ Copied (legacy)';
+    } catch (e2) {
+      btn.textContent = '❌ Copy failed';
+      log('❌ Clipboard blocked. Select the textarea text and press Ctrl+C. Error: '+e2.message, 'err');
+    }
+  }
+  setTimeout(()=>{ btn.textContent = original; }, 1600);
+}
+document.querySelectorAll('.copy').forEach(btn => btn.addEventListener('click', () => {
+  const ta = $(btn.dataset.target);
+  if (!ta.value) { log('Nothing to copy — run a dump first.', 'warn'); return; }
+  copyText(ta.value, btn);
+}));
+
+$('testBtn').addEventListener('click', async () => {
+  log('══════ Testing proxies against https://example.com ══════', 'info');
+  let anyOk = false;
+  for (const proxy of PROXIES) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 10000);
+    try {
+      const res = await fetch(proxy.build('https://example.com'), { signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      if (/Example Domain/i.test(text)) { log(`✅ ${proxy.name}: OK (${fmtSize(text.length)})`, 'ok'); anyOk = true; }
+      else log(`⚠️ ${proxy.name}: ${fmtSize(text.length)} but content doesn't look right`, 'warn');
+    } catch (e) {
+      clearTimeout(timer);
+      log(`❌ ${proxy.name}: ${e.name==='AbortError'?'timeout':e.message}`, 'err');
+    }
+  }
+  log(anyOk ? '✅ At least one proxy works — dumping should work.' : '❌ No proxies worked. Your network may block them all, or they are all down. Try the Node backend version instead.', anyOk?'ok':'err');
 });
 
-$('copyJsBtn').onclick = () => {
-  $('jsOut').select();
-  navigator.clipboard.writeText($('jsOut').value).then(
-    () => { $('copyJsBtn').textContent = '✅ JS Copied!'; setTimeout(()=>$('copyJsBtn').textContent='📋 Copy JS only', 1500); },
-    () => { document.execCommand('copy'); }
-  );
-};
+$('dumpBtn').addEventListener('click', async () => {
+  let url = $('urlInput').value.trim();
+  if (!url) { log('❌ Enter a URL first.', 'err'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  $('urlInput').value = url;
 
-$('downloadBtn').onclick = () => {
-  const blob = new Blob([
-    '/* ====================== JS ====================== */\n' + $('jsOut').value +
-    '\n\n/* ====================== CSS ====================== */\n' + $('cssOut').value +
-    '\n\n<!-- ====================== HTML ====================== -->\n' + $('htmlOut').value
-  ], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'dump.txt';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-
-$('dumpBtn').onclick = async () => {
-  const url = $('urlInput').value.trim();
-  if (!url) return alert('Enter a URL');
-  $('log').textContent = '';
   $('dumpBtn').disabled = true;
-  $('copyJsBtn').disabled = true;
-  $('downloadBtn').disabled = true;
   $('jsOut').value = $('cssOut').value = $('htmlOut').value = '';
+  $('jsInfo').textContent = $('cssInfo').textContent = $('htmlInfo').textContent = '—';
+  $('log').innerHTML = '';
+  requestCount = 0; setStatus('statusCount','requests: 0');
+  setStatus('statusPhase','phase: starting','busy');
+  log('══════════════════════════════════════════════', 'info');
+  log('🚀 Dumping: ' + url, 'info');
+  log('══════════════════════════════════════════════', 'info');
 
   try {
-    // 1. fetch HTML
-    log('▶ Fetching HTML: ' + url);
-    const html = await fetchViaProxy(url);
+    setStatus('statusPhase','phase: fetching HTML','busy');
+    log('📄 Step 1: Fetching HTML…', 'info');
+    const html = await fetchViaProxy(url, { what:'HTML' });
     $('htmlOut').value = html;
-    $('htmlInfo').textContent = fmtSize(html.length) + ' · ' + html.length + ' chars';
-    log('✓ HTML: ' + fmtSize(html.length));
+    $('htmlInfo').textContent = fmtSize(html.length);
+    if (/cf-chl|Just a moment|Attention Required|Enable JavaScript and cookies/i.test(html.slice(0,3000))) {
+      log('⚠️ Response looks like a Cloudflare/anti-bot page. Site is probably blocking the proxy.', 'warn');
+    }
 
-    // 2. parse
+    setStatus('statusPhase','phase: parsing DOM','busy');
+    log('🔍 Step 2: Parsing DOM…', 'info');
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    let baseUrl = url;
     const baseEl = doc.querySelector('base[href]');
-    const baseUrl = baseEl ? new URL(baseEl.getAttribute('href'), url).href : url;
+    if (baseEl) { try { baseUrl = new URL(baseEl.getAttribute('href'), url).href; log('  base: '+baseUrl,'dim'); } catch(e){} }
 
-    // 3. collect scripts
-    const scripts = [];
-    let inlineScriptN = 0;
-    doc.querySelectorAll('script').forEach(s => {
+    const allScripts = [...doc.querySelectorAll('script')];
+    log(`📜 Found ${allScripts.length} <script> element(s)`, 'info');
+    const scriptPlan = []; let inlineN=0, extN=0;
+    for (const s of allScripts) {
       const type = s.getAttribute('type') || 'text/javascript';
-      if (s.src) {
-        try { scripts.push({ kind: 'external', src: new URL(s.getAttribute('src'), baseUrl).href, type }); }
-        catch (e) { log('  ! bad script src: ' + s.getAttribute('src')); }
+      const srcRaw = s.getAttribute('src');
+      if (srcRaw) {
+        try { scriptPlan.push({ kind:'external', src: new URL(srcRaw, baseUrl).href, type, extIdx: extN++ }); }
+        catch(e) { log(`  ⚠️ bad src: ${srcRaw}`, 'warn'); }
       } else if (s.textContent.trim()) {
-        inlineScriptN++;
-        scripts.push({ kind: 'inline', n: inlineScriptN, code: s.textContent, type });
+        scriptPlan.push({ kind:'inline', code:s.textContent, type, inlineIdx: ++inlineN });
       }
-    });
+    }
+    log(`  → ${extN} external, ${inlineN} inline`, 'info');
 
-    const extScripts = scripts.filter(s => s.kind === 'external').slice(0, MAX_SCRIPTS);
-    log(`✓ Found ${extScripts.length} external scripts + ${inlineScriptN} inline scripts`);
+    const externalScripts = scriptPlan.filter(p=>p.kind==='external');
+    let scriptResults = [];
+    if (externalScripts.length) {
+      setStatus('statusPhase',`phase: fetching JS (${externalScripts.length})`,'busy');
+      log(`⬇️ Step 3: Fetching ${externalScripts.length} JS file(s)…`, 'info');
+      scriptResults = await pool(
+        externalScripts, 4,
+        item => fetchViaProxy(item.src, { what:'JS' }),
+        (n,total,item,r) => {
+          if (r && typeof r==='string') log(`  ✅ [${n}/${total}] ${fmtSize(r.length)} — ${item.src}`, 'ok');
+          else log(`  ❌ [${n}/${total}] FAILED — ${item.src}`, 'err');
+        }
+      );
+    }
 
-    // 4. fetch external scripts
-    let totalChars = 0;
-    await pool(extScripts, 4, async (item, i) => {
-      try {
-        const code = await fetchViaProxy(item.src);
-        totalChars += code.length;
-        if (totalChars > MAX_TOTAL_CHARS) { item.error = 'size cap reached, skipped'; log(`  ⏭ [${i+1}/${extScripts.length}] skipped (${fmtSize(code.length)} too big cumulatively)`); return; }
-        item.code = code;
-        log(`  ✓ [${i+1}/${extScripts.length}] ${fmtSize(code.length)}  ${item.src}`);
-      } catch (e) {
-        item.error = e.message;
-        log(`  ✗ [${i+1}/${extScripts.length}] ${item.src}  (${e.message})`);
-      }
-    });
-
-    // 5. collect CSS
-    const cssItems = [];
-    let inlineCssN = 0;
-    doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(l => {
-      try { cssItems.push({ kind: 'external', src: new URL(l.getAttribute('href'), baseUrl).href, media: l.getAttribute('media') }); }
-      catch (e) {}
-    });
-    doc.querySelectorAll('style').forEach(s => {
-      inlineCssN++;
-      cssItems.push({ kind: 'inline', n: inlineCssN, code: s.textContent });
-    });
-    const extCss = cssItems.filter(c => c.kind === 'external').slice(0, MAX_SCRIPTS);
-    log(`✓ Found ${extCss.length} external stylesheets + ${inlineCssN} inline <style> blocks`);
-
-    // 6. fetch external CSS
-    await pool(extCss, 4, async (item, i) => {
-      try {
-        const code = await fetchViaProxy(item.src);
-        item.code = code;
-        log(`  ✓ [${i+1}/${extCss.length}] ${fmtSize(code.length)}  ${item.src}`);
-      } catch (e) {
-        item.error = e.message;
-        log(`  ✗ [${i+1}/${extCss.length}] ${item.src}  (${e.message})`);
-      }
-    });
-
-    // 7. assemble JS output
     const jsParts = [];
-    for (const s of scripts) {
-      if (s.kind === 'inline') {
-        jsParts.push(`\n/* ===== INLINE <script> #${s.n} (type="${s.type}") ===== */\n${s.code.trim()}\n`);
+    for (const p of scriptPlan) {
+      if (p.kind === 'inline') {
+        const hdr = `/* ===== INLINE <script> #${p.inlineIdx}${p.type !== 'text/javascript' ? ` (type="${p.type}")` : ''} ===== */`;
+        jsParts.push(hdr + '\n' + p.code.trim() + '\n');
       } else {
-        jsParts.push(`\n/* ===== EXTERNAL: ${s.src} (type="${s.type}") ===== */`);
-        jsParts.push(s.error ? `/* ❌ FAILED TO FETCH: ${s.error} */\n` : (s.code || '/* (not fetched) */') + '\n');
+        const hdr = `/* ===== EXTERNAL: ${p.src} ===== */`;
+        const r = scriptResults[p.extIdx];
+        if (r && typeof r === 'string') jsParts.push(hdr + '\n' + r + '\n');
+        else jsParts.push(hdr + '\n/* ❌ FAILED: ' + ((r && r.error) || 'unknown') + ' */\n');
       }
     }
     const jsText = jsParts.join('\n');
     $('jsOut').value = jsText;
-    $('jsInfo').textContent = fmtSize(jsText.length) + ' · ' + jsText.length + ' chars';
+    $('jsInfo').textContent = fmtSize(jsText.length);
 
-    // 8. assemble CSS output
-    const cssParts = [];
-    for (const c of cssItems) {
-      if (c.kind === 'inline') {
-        cssParts.push(`\n/* ===== INLINE <style> #${c.n} ===== */\n${c.code.trim()}\n`);
+    setStatus('statusPhase','phase: fetching CSS','busy');
+    log('🎨 Step 4: Collecting CSS…', 'info');
+    const cssPlan = []; let inlineCssN = 0;
+    doc.querySelectorAll('link[rel~="stylesheet"][href]').forEach(l => {
+      try { cssPlan.push({ kind:'external', src:new URL(l.getAttribute('href'), baseUrl).href, media: l.getAttribute('media') }); }
+      catch(e){ log(`  ⚠️ bad href: ${l.getAttribute('href')}`, 'warn'); }
+    });
+    doc.querySelectorAll('style').forEach(s => {
+      if (s.textContent.trim()) cssPlan.push({ kind:'inline', code:s.textContent, n: ++inlineCssN });
+    });
+    const externalCss = cssPlan.filter(p=>p.kind==='external');
+    log(`  → ${externalCss.length} external stylesheet(s), ${inlineCssN} inline <style>`, 'info');
+
+    let cssResults = [];
+    if (externalCss.length) {
+      log(`⬇️ Fetching ${externalCss.length} CSS file(s)…`, 'info');
+      cssResults = await pool(
+        externalCss, 4,
+        item => fetchViaProxy(item.src, { what:'CSS' }),
+        (n,total,item,r) => {
+          if (r && typeof r==='string') log(`  ✅ [${n}/${total}] ${fmtSize(r.length)} — ${item.src}`, 'ok');
+          else log(`  ❌ [${n}/${total}] FAILED — ${item.src}`, 'err');
+        }
+      );
+    }
+
+    const cssParts = []; let extCssIdx = 0;
+    for (const p of cssPlan) {
+      if (p.kind === 'inline') {
+        cssParts.push(`/* ===== INLINE <style> #${p.n} ===== */\n${p.code.trim()}\n`);
       } else {
-        cssParts.push(`\n/* ===== EXTERNAL: ${c.src}${c.media ? ' media="'+c.media+'"' : ''} ===== */`);
-        cssParts.push(c.error ? `/* ❌ FAILED TO FETCH: ${c.error} */\n` : (c.code || '') + '\n');
+        const hdr = `/* ===== EXTERNAL: ${p.src}${p.media ? ` (media="${p.media}")` : ''} ===== */`;
+        const r = cssResults[extCssIdx++];
+        if (r && typeof r === 'string') cssParts.push(hdr + '\n' + r + '\n');
+        else cssParts.push(hdr + '\n/* ❌ FAILED: ' + ((r && r.error) || 'unknown') + ' */\n');
       }
     }
     const cssText = cssParts.join('\n');
     $('cssOut').value = cssText;
-    $('cssInfo').textContent = fmtSize(cssText.length) + ' · ' + cssText.length + ' chars';
+    $('cssInfo').textContent = fmtSize(cssText.length);
 
-    log('\n✅ DONE. Switch tabs to see JS / CSS / HTML. Click "Copy JS only" to grab the JS.');
-
-    // jump to JS tab automatically since that's what you care about
-    document.querySelector('.tabs button[data-tab="js"]').click();
-
-    $('copyJsBtn').disabled = false;
-    $('downloadBtn').disabled = false;
+    document.querySelector('.tab[data-tab="js"]').click();
+    const failCount = scriptResults.filter(r => !r || typeof r !== 'string').length;
+    setStatus('statusPhase', 'phase: done', failCount ? 'warn' : 'ok');
+    log('══════════════════════════════════════════════', 'ok');
+    log(`✅ DONE. HTML ${fmtSize(html.length)} · CSS ${fmtSize(cssText.length)} · JS ${fmtSize(jsText.length)}`, 'ok');
+    if (failCount) log(`⚠️ ${failCount} external script(s) failed — see the ❌ lines above.`, 'warn');
+    log('Click "📋 Copy JS" on the JavaScript tab.', 'info');
   } catch (err) {
-    log('❌ FATAL: ' + err.message);
+    log('❌ FATAL: ' + (err.message || String(err)), 'err');
+    console.error('[dumper] fatal:', err);
+    setStatus('statusPhase', 'phase: error', 'err');
   } finally {
     $('dumpBtn').disabled = false;
   }
-};
+});
+
+log('Ready. Enter a URL and click Dump. Open DevTools (F12) to see the console log too.', 'info');
+if (!window.isSecureContext) log('⚠️ Not a secure context (file:// or http://) — clipboard will use legacy fallback.', 'warn');
 </script>
 </body>
 </html>
