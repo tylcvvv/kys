@@ -3,14 +3,25 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MetaMask Detector</title>
+<title>Trust Wallet — BEP-20 Coin Checker</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg: #0b0d12;
+    --card: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.09);
+    --text: #e8ecf3;
+    --muted: #8b93a7;
+    --green: #34d399;
+    --red: #f87171;
+    --bsc: #f0b90b;
+  }
+
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
-    background: radial-gradient(1000px 600px at 50% -10%, #1d2747 0%, #0b0d12 65%) no-repeat, #0b0d12;
-    color: #e8ecf3;
+    background: radial-gradient(1000px 600px at 50% -10%, #2a2410 0%, var(--bg) 65%) no-repeat, var(--bg);
+    color: var(--text);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -21,164 +32,370 @@
 
   .card {
     width: 100%;
-    max-width: 440px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.09);
+    max-width: 520px;
+    background: var(--card);
+    border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 36px 28px;
-    text-align: center;
+    padding: 32px 26px;
     backdrop-filter: blur(12px);
     box-shadow: 0 24px 60px -30px rgba(0,0,0,0.9);
-    transition: border-color .3s ease, background .3s ease;
+    transition: border-color .3s ease;
   }
   .card.found {
-    border-color: rgba(52,211,153,0.45);
-    background: linear-gradient(180deg, rgba(52,211,153,0.10), rgba(255,255,255,0.03));
+    border-color: rgba(240,185,11,0.45);
+    background: linear-gradient(180deg, rgba(240,185,11,0.08), var(--card));
   }
   .card.none {
     border-color: rgba(248,113,113,0.35);
-    background: linear-gradient(180deg, rgba(248,113,113,0.08), rgba(255,255,255,0.03));
+    background: linear-gradient(180deg, rgba(248,113,113,0.06), var(--card));
   }
 
   .icon {
-    width: 72px;
-    height: 72px;
+    width: 72px; height: 72px;
     border-radius: 20px;
-    margin: 0 auto 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    font-weight: 800;
-    color: #fff;
-    background: linear-gradient(135deg, #f6851b, #e2761b);
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2), 0 12px 30px -12px rgba(246,133,27,0.9);
-    filter: grayscale(0.7) brightness(0.7);
+    margin: 0 auto 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 800; color: #000;
+    background: linear-gradient(135deg, #f0b90b, #d4a00a);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3), 0 12px 30px -12px rgba(240,185,11,0.9);
+    filter: grayscale(0.7) brightness(0.8);
     transition: filter .3s ease;
   }
   .card.found .icon { filter: none; }
 
-  h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 10px;
-  }
-
-  p {
-    font-size: 14px;
-    line-height: 1.55;
-    color: #8b93a7;
-  }
-  .card.found p { color: #a7f3d0; }
+  h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; text-align: center; margin-bottom: 8px; }
+  p  { font-size: 14px; line-height: 1.55; color: var(--muted); text-align: center; }
+  .card.found p { color: #fde68a; }
   .card.none  p { color: #fca5a5; }
 
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 22px;
-    padding: 9px 16px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .06em;
-    text-transform: uppercase;
-  }
-  .badge.found { background: rgba(52,211,153,0.16); color: #34d399; }
-  .badge.none  { background: rgba(248,113,113,0.12); color: #f87171; }
+  #balanceSection { display: none; margin-top: 24px; padding-top: 20px; border-top: 1px dashed rgba(255,255,255,0.1); }
+  .balance-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 4px; text-align: center; }
+  .native-balance { font-size: 30px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; text-align: center; }
+  .address { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); margin-top: 6px; word-break: break-all; text-align: center; }
 
-  .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: currentColor;
-  }
-
-  .a {
-    display: inline-block;
-    margin-top: 20px;
+  .token-list { margin-top: 20px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 14px; }
+  .token-list h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+  .token-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
     font-size: 13px;
-    color: #a5b4fc;
-    text-decoration: none;
-    border-bottom: 1px dashed rgba(165,180,252,0.5);
   }
-  .a:hover { color: #c7d2fe; }
+  .token-row:last-child { border-bottom: none; }
+  .token-name { font-weight: 600; }
+  .token-symbol { font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .token-balance { font-family: ui-monospace, monospace; color: var(--green); font-weight: 600; }
+
+  button {
+    font: inherit; font-size: 14px; font-weight: 600;
+    padding: 13px 24px; border-radius: 12px; border: none;
+    cursor: pointer; transition: transform .12s ease, opacity .2s ease;
+    width: 100%; margin-top: 20px;
+  }
+  button:active { transform: scale(0.97); }
+  #connectBtn { background: linear-gradient(135deg, #f0b90b, #d4a00a); color: #000; }
+  #connectBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+  #disconnectBtn { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+
+  .status-msg { font-size: 12px; color: var(--red); margin-top: 12px; text-align: center; min-height: 16px; }
 </style>
 </head>
 <body>
-
   <div class="card" id="card">
-    <div class="icon">MM</div>
+    <div class="icon">BSC</div>
     <h1 id="title">Checking…</h1>
-    <p id="desc">Looking for MetaMask in this browser.</p>
-    <div class="badge" id="badge"><span class="dot"></span><span id="badgeText">Scanning</span></div>
+    <p id="desc">Looking for Trust Wallet in this browser.</p>
+
+    <button id="connectBtn" disabled style="display:none;">Connect Trust Wallet (BEP-20)</button>
+    <button id="disconnectBtn" style="display:none;">Disconnect</button>
+
+    <div id="balanceSection">
+      <div class="balance-label">BNB Balance (BEP-20)</div>
+      <div class="native-balance" id="nativeBalance">—</div>
+      <div class="address" id="addressText"></div>
+
+      <div class="token-list">
+        <h3>BEP-20 Token Balances</h3>
+        <div id="tokenRows"></div>
+      </div>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
   </div>
 
 <script>
-  (function () {
-    "use strict";
+(function () {
+  "use strict";
 
-    var card      = document.getElementById("card");
-    var title     = document.getElementById("title");
-    var desc      = document.getElementById("desc");
-    var badge     = document.getElementById("badge");
-    var badgeText = document.getElementById("badgeText");
+  /* ------------------------------------------------------------------
+     DOM
+     ------------------------------------------------------------------ */
+  var card          = document.getElementById("card");
+  var title         = document.getElementById("title");
+  var desc          = document.getElementById("desc");
+  var connectBtn    = document.getElementById("connectBtn");
+  var disconnectBtn = document.getElementById("disconnectBtn");
+  var balanceSec    = document.getElementById("balanceSection");
+  var nativeBalEl   = document.getElementById("nativeBalance");
+  var addressText   = document.getElementById("addressText");
+  var tokenRowsEl   = document.getElementById("tokenRows");
+  var statusMsg     = document.getElementById("statusMsg");
 
-    function detect() {
-      var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
+  var currentAddr = null;
 
-      // Handle multi-provider (e.g. MetaMask + other wallet installed together)
-      var providers = [];
-      if (eth) {
-        if (Array.isArray(eth.providers) && eth.providers.length) {
-          providers = eth.providers;
-        } else {
-          providers = [eth];
-        }
+  /* ------------------------------------------------------------------
+     BSC network config
+     ------------------------------------------------------------------ */
+  var BSC_CHAIN_ID = "0x38"; // 56 in decimal
+  var BSC_PARAMS = {
+    chainId: BSC_CHAIN_ID,
+    chainName: "BNB Smart Chain Mainnet",
+    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+    rpcUrls: ["https://bsc-dataseed.binance.org/"],
+    blockExplorerUrls: ["https://bscscan.com/"]
+  };
+
+  /* ------------------------------------------------------------------
+     Popular BEP-20 tokens on BSC
+     ------------------------------------------------------------------ */
+  var TOKENS = [
+    { symbol: "USDT",  name: "Tether USD",       address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18 },
+    { symbol: "BUSD",  name: "Binance USD",       address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18 },
+    { symbol: "WBNB",  name: "Wrapped BNB",       address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", decimals: 18 },
+    { symbol: "CAKE",  name: "PancakeSwap",       address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18 },
+    { symbol: "USDC",  name: "USD Coin",          address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18 },
+    { symbol: "BTCB",  name: "Bitcoin BEP-20",    address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18 },
+    { symbol: "ETH",   name: "Ethereum BEP-20",   address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18 },
+    { symbol: "XRP",   name: "XRP BEP-20",        address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
+  ];
+
+  /* ------------------------------------------------------------------
+     Trust Wallet detection
+     ------------------------------------------------------------------ */
+  function detectTrust() {
+    var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
+    var tw  = typeof window.trustwallet !== "undefined" ? window.trustwallet : null;
+
+    var hasTrust = false;
+    if (eth && eth.isTrust) hasTrust = true;
+    if (tw && tw.isTrust)   hasTrust = true;
+
+    if (!hasTrust && eth && Array.isArray(eth.providers)) {
+      for (var i = 0; i < eth.providers.length; i++) {
+        if (eth.providers[i] && eth.providers[i].isTrust) { hasTrust = true; break; }
       }
-
-      var hasMetaMask = false;
-      for (var i = 0; i < providers.length; i++) {
-        if (providers[i] && providers[i].isMetaMask) {
-          hasMetaMask = true;
-          break;
-        }
-      }
-
-      render(hasMetaMask, eth);
     }
 
-    function render(found, eth) {
-      if (found) {
-        card.className = "card found";
-        title.textContent = "MetaMask is installed 🦊";
-        desc.textContent  = "We detected the MetaMask wallet extension in your browser.";
-        badge.className   = "badge found";
-        badgeText.textContent = "Detected";
-      } else if (eth) {
-        // Some other wallet is present, but not MetaMask
-        card.className = "card none";
-        title.textContent = "MetaMask not found";
-        desc.textContent  = "Another wallet extension is active, but MetaMask is not installed.";
-        badge.className   = "badge none";
-        badgeText.textContent = "Not installed";
+    renderDetection(hasTrust);
+    if (hasTrust) checkExistingConnection();
+  }
+
+  window.addEventListener("eip6963:announceProvider", function (event) {
+    var detail = event && event.detail;
+    if (!detail || !detail.info) return;
+    var rdns = String(detail.info.rdns || "").toLowerCase();
+    var name = String(detail.info.name || "").toLowerCase();
+    if (rdns.indexOf("trust") !== -1 || name.indexOf("trust") !== -1) {
+      renderDetection(true);
+      checkExistingConnection();
+    }
+  });
+
+  function requestProviders() {
+    try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------------
+     UI
+     ------------------------------------------------------------------ */
+  function renderDetection(found) {
+    if (found) {
+      card.className = "card found";
+      title.textContent = "Trust Wallet is installed 🛡️";
+      desc.textContent  = "Connect to see your BEP-20 coins and balances.";
+      connectBtn.style.display = "block";
+      connectBtn.disabled = false;
+    } else {
+      card.className = "card none";
+      title.textContent = "Trust Wallet not found";
+      desc.textContent  = "Install the Trust Wallet browser extension to get started.";
+      connectBtn.style.display = "none";
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Connection & network switch
+     ------------------------------------------------------------------ */
+  async function checkExistingConnection() {
+    try {
+      var provider = getTrustProvider();
+      if (!provider) return;
+      var accounts = await provider.request({ method: "eth_accounts" });
+      if (accounts && accounts.length > 0) {
+        currentAddr = accounts[0];
+        connectBtn.style.display = "none";
+        disconnectBtn.style.display = "block";
+        await ensureBSC(provider);
+        await loadBalances(currentAddr);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  async function connect() {
+    var provider = getTrustProvider();
+    if (!provider) {
+      statusMsg.textContent = "Trust Wallet provider not available.";
+      return;
+    }
+
+    connectBtn.disabled = true;
+    connectBtn.textContent = "Connecting…";
+    statusMsg.textContent = "";
+
+    try {
+      var accounts = await provider.request({ method: "eth_requestAccounts" });
+      if (accounts && accounts.length > 0) {
+        currentAddr = accounts[0];
+        connectBtn.style.display = "none";
+        disconnectBtn.style.display = "block";
+        await ensureBSC(provider);
+        await loadBalances(currentAddr);
+      }
+    } catch (e) {
+      statusMsg.textContent = "Connection rejected. Trust Wallet access is required.";
+    } finally {
+      connectBtn.disabled = false;
+      connectBtn.textContent = "Connect Trust Wallet (BEP-20)";
+    }
+  }
+
+  function getTrustProvider() {
+    if (typeof window.trustwallet !== "undefined" && window.trustwallet.isTrust) return window.trustwallet;
+    if (typeof window.ethereum !== "undefined" && window.ethereum.isTrust) return window.ethereum;
+    return null;
+  }
+
+  /* ------------------------------------------------------------------
+     Ensure the wallet is on BSC (chain 56)
+     ------------------------------------------------------------------ */
+  async function ensureBSC(provider) {
+    try {
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: BSC_CHAIN_ID }]
+      });
+    } catch (switchError) {
+      // 4902 = chain not added yet → add it
+      if (switchError && switchError.code === 4902) {
+        try {
+          await provider.request({
+            method: "wallet_addEthereumChain",
+            params: [BSC_PARAMS]
+          });
+        } catch (addError) {
+          statusMsg.textContent = "Could not add BSC network. Please add it manually in Trust Wallet.";
+          throw addError;
+        }
       } else {
-        card.className = "card none";
-        title.textContent = "MetaMask not found";
-        desc.textContent  = "Install the MetaMask extension to get started.";
-        badge.className   = "badge none";
-        badgeText.textContent = "Not installed";
+        // Some wallets throw if already on the right chain — ignore
+      }
+    }
+  }
+
+  /* ------------------------------------------------------------------
+     Balance fetching
+     ------------------------------------------------------------------ */
+  async function loadBalances(address) {
+    var provider = getTrustProvider();
+    if (!provider) return;
+
+    statusMsg.textContent = "Loading BEP-20 balances…";
+    balanceSec.style.display = "block";
+    addressText.textContent = address;
+    tokenRowsEl.innerHTML = "";
+    nativeBalEl.textContent = "…";
+
+    /* --- Native BNB --- */
+    try {
+      var hexBal = await provider.request({
+        method: "eth_getBalance",
+        params: [address, "latest"]
+      });
+      var wei = BigInt(hexBal);
+      nativeBalEl.textContent = formatWei(wei, 18) + " BNB";
+    } catch (e) {
+      nativeBalEl.textContent = "Error";
+    }
+
+    /* --- BEP-20 tokens --- */
+    for (var i = 0; i < TOKENS.length; i++) {
+      var t = TOKENS[i];
+      var row = document.createElement("div");
+      row.className = "token-row";
+
+      var left = document.createElement("div");
+      left.innerHTML = '<span class="token-name">' + t.name + '</span><span class="token-symbol">' + t.symbol + '</span>';
+
+      var right = document.createElement("div");
+      right.className = "token-balance";
+      right.textContent = "…";
+
+      row.appendChild(left);
+      row.appendChild(right);
+      tokenRowsEl.appendChild(row);
+
+      try {
+        var data = "0x70a08231000000000000000000000000" + address.slice(2).toLowerCase();
+        var result = await provider.request({
+          method: "eth_call",
+          params: [{ to: t.address, data: data }, "latest"]
+        });
+        var raw = BigInt(result);
+        right.textContent = formatWei(raw, t.decimals) + " " + t.symbol;
+      } catch (err) {
+        right.textContent = "—";
       }
     }
 
-    // Run on load + a few delayed checks (extensions sometimes inject late)
-    render(false, null);
-    setTimeout(detect, 0);
-    setTimeout(detect, 300);
-    setTimeout(detect, 1000);
-    window.addEventListener("load", detect);
+    statusMsg.textContent = "";
+  }
 
-  })();
+  function formatWei(wei, decimals) {
+    var s = wei.toString().padStart(decimals + 1, "0");
+    var whole = s.slice(0, s.length - decimals) || "0";
+    var frac  = s.slice(s.length - decimals).replace(/0+$/, "");
+    return frac ? whole + "." + frac.slice(0, 6) : whole;
+  }
+
+  /* ------------------------------------------------------------------
+     Disconnect (UI only)
+     ------------------------------------------------------------------ */
+  function disconnect() {
+    currentAddr = null;
+    balanceSec.style.display = "none";
+    disconnectBtn.style.display = "none";
+    connectBtn.style.display = "block";
+    title.textContent = "Trust Wallet is installed 🛡️";
+    desc.textContent  = "Connect to see your BEP-20 coins and balances.";
+    statusMsg.textContent = "";
+  }
+
+  /* ------------------------------------------------------------------
+     Boot
+     ------------------------------------------------------------------ */
+  connectBtn.addEventListener("click", connect);
+  disconnectBtn.addEventListener("click", disconnect);
+
+  detectTrust();
+  requestProviders();
+
+  setTimeout(detectTrust, 500);
+  setTimeout(detectTrust, 1500);
+  window.addEventListener("load", function () {
+    detectTrust();
+    requestProviders();
+  });
+
+})();
 </script>
 </body>
 </html>
