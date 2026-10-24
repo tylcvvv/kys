@@ -127,6 +127,7 @@
 
   var provider    = null;
   var currentAddr = null;
+  var announced    = [];   // EIP-6963 providers discovered at page load
 
   var BSC_CHAIN_ID = "0x38";
   var BSC_PARAMS = {
@@ -157,31 +158,79 @@
     }
   })();
 
-  function isTrustProvider(p) {
-    if (!p) return false;
-    if (p.isTrust) return true;
-    if (p.isTrustWallet) return true;
-    try {
-      if (p.providerInfo && /trust/i.test(p.providerInfo.name || "")) return true;
-      if (p._tw && p._tw.isTrust) return true;
-    } catch (e) {}
-    return false;
+  // EIP-6963: listen for provider announcements from the start
+  (function listenEIP6963() {
+    if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
+    window.addEventListener("eip6963:announceProvider", function (ev) {
+      try {
+        if (ev && ev.detail && ev.detail.provider && ev.detail.info) {
+          // avoid duplicates
+          for (var i = 0; i < announced.length; i++) {
+            if (announced[i].info.uuid === ev.detail.info.uuid) return;
+          }
+          announced.push(ev.detail);
+        }
+      } catch (e) {}
+    });
+    try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
+  })();
+
+  function isTrustName(name) {
+    return typeof name === "string" && /trust/i.test(name);
+  }
+
+  function pickTrustFromAnnounced() {
+    var generic = null;
+    for (var i = 0; i < announced.length; i++) {
+      var d = announced[i];
+      if (d && d.provider) {
+        if (isTrustName(d.info && d.info.name) || isTrustName(d.info && d.info.rdns)) return d.provider;
+        if (generic === null) generic = d.provider;
+      }
+    }
+    return generic; // if only one injected provider is announced, use it
   }
 
   function findTrustProvider() {
+    // 1) legacy injections
     if (typeof window.trustwallet !== "undefined" && window.trustwallet && window.trustwallet.isTrust) {
       return window.trustwallet;
     }
     var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
     if (eth) {
-      if (isTrustProvider(eth)) return eth;
+      if (eth.isTrust || eth.isTrustWallet) return eth;
       if (Array.isArray(eth.providers)) {
         for (var i = 0; i < eth.providers.length; i++) {
-          if (isTrustProvider(eth.providers[i])) return eth.providers[i];
+          var p = eth.providers[i];
+          if (p && (p.isTrust || p.isTrustWallet)) return p;
         }
       }
     }
+    // 2) EIP-6963
+    var fromAnnounced = pickTrustFromAnnounced();
+    if (fromAnnounced) return fromAnnounced;
+    // 3) last-resort: any injected provider (dApp opened inside a wallet browser)
+    if (eth && typeof eth.request === "function") return eth;
     return null;
+  }
+
+  async function waitForProvider(timeoutMs) {
+    var found = findTrustProvider();
+    if (found) return found;
+    return await new Promise(function (resolve) {
+      var done = false;
+      function finish(p) { if (done) return; done = true; cleanup(); resolve(p); }
+      function onAnnounce() {
+        var p = findTrustProvider();
+        if (p) finish(p);
+      }
+      function cleanup() {
+        try { window.removeEventListener("eip6963:announceProvider", onAnnounce); } catch (e) {}
+      }
+      try { window.addEventListener("eip6963:announceProvider", onAnnounce); } catch (e) {}
+      try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
+      setTimeout(function () { finish(findTrustProvider()); }, timeoutMs || 1200);
+    });
   }
 
   async function ensureBSC(p) {
@@ -232,13 +281,17 @@
   }
 
   connectBtn.addEventListener("click", async function () {
-    provider = findTrustProvider();
-    if (!provider) {
-      setMsg("Trust Wallet not detected. Open this page inside the Trust Wallet app.", "err");
-      return;
-    }
     connectBtn.disabled = true;
     connectBtn.textContent = "Connecting…";
+    setMsg("Looking for wallet…", null);
+
+    provider = await waitForProvider(1500);
+    if (!provider) {
+      setMsg("Wallet not detected. Open this page inside the Trust Wallet app's browser.", "err");
+      connectBtn.disabled = false;
+      connectBtn.textContent = "Connect Trust Wallet";
+      return;
+    }
     try {
       var accounts = await provider.request({ method: "eth_requestAccounts" });
       if (accounts && accounts.length > 0) {
@@ -248,9 +301,12 @@
         disconnectBtn.style.display = "block";
         setMsg("Connected: " + currentAddr, "ok");
         updateEnabled();
+      } else {
+        setMsg("No accounts returned.", "err");
       }
     } catch (e) {
-      setMsg("Connection rejected.", "err");
+      var m = (e && e.code === 4001) ? "Connection rejected." : ("Connection failed: " + (e && (e.message || e.code)));
+      setMsg(m, "err");
     } finally {
       connectBtn.disabled = false;
       connectBtn.textContent = "Connect Trust Wallet";
